@@ -1,0 +1,4 @@
+apiVersion: 1
+apps:
+  - type: grafana-mqtt-datasource
+    disabled: false

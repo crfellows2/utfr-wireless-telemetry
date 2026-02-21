@@ -1,0 +1,27 @@
+[profiles.acceleration]
+description = "FSAE Acceleration Event"
+
+[[profiles.acceleration.buckets.0.signals]]
+name = "Highest Cell Temp"
+frequency_hz = 1.0
+min_frequency_hz = 1.0
+
+[[profiles.acceleration.buckets.0.signals]]
+name = "GPS Speed"
+frequency_hz = 10.0
+min_frequency_hz = 1.0
+
+[[profiles.acceleration.buckets.1.signals]]
+name = "Motor Speed"
+frequency_hz = 100.0
+min_frequency_hz = 10.0
+
+[[profiles.acceleration.buckets.1.signals]]
+name = "Steering Angle"
+frequency_hz = 10.0
+min_frequency_hz = 5.0
+
+[[profiles.acceleration.buckets.2.signals]]
+name = "FL Damper Pot"
+frequency_hz = 50.0
+min_frequency_hz = 0.0
