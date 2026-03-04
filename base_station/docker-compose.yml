@@ -14,6 +14,7 @@ services:
     image: eclipse-mosquitto
     ports:
       - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
@@ -24,6 +25,7 @@ services:
 
   can_bridge:
     build: ./can_bridge
+    privileged: true
     depends_on:
       - mosquitto
     restart: unless-stopped
