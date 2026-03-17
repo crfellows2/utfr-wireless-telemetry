@@ -29,6 +29,7 @@ esp32-nimble = "0.12.0"
 enumset = "1.1.10"
 embassy-futures = "0.1.2"
 embassy-sync = "0.7.2"
+ds323x = "0.7"
 
 # --- Optional Embassy Integration ---
 # esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }

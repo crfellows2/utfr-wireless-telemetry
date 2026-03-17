@@ -1,3 +1,77 @@
+use core::fmt;
+
+/// Maximum size of a candump-formatted CAN frame in bytes
+/// Measured worst case: 61 bytes. Using 128 for safety margin.
+pub const CANDUMP_MAX_FRAME_SIZE: usize = 128;
+
+/// Wrapper to allow writing formatted output to a byte buffer
+struct ByteBuffer<'a> {
+    buf: &'a mut [u8],
+    pos: usize,
+}
+
+impl<'a> ByteBuffer<'a> {
+    fn new(buf: &'a mut [u8]) -> Self {
+        Self { buf, pos: 0 }
+    }
+
+    fn len(&self) -> usize {
+        self.pos
+    }
+}
+
+impl fmt::Write for ByteBuffer<'_> {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        let bytes = s.as_bytes();
+        if self.pos + bytes.len() > self.buf.len() {
+            return Err(fmt::Error);
+        }
+        self.buf[self.pos..self.pos + bytes.len()].copy_from_slice(bytes);
+        self.pos += bytes.len();
+        Ok(())
+    }
+}
+
+/// Format a CAN frame to candump format
+/// Returns number of bytes written, or 0 if buffer too small
+pub fn format_candump(
+    buf: &mut [u8],
+    timestamp_sec: u64,
+    timestamp_usec: u32,
+    bus_id: u8,
+    can_id: u32,
+    data: &[u8],
+) -> usize {
+    use fmt::Write;
+
+    let mut writer = ByteBuffer::new(buf);
+
+    // Format: (1234567890.123456) can0 123#1122334455667788\n
+    if write!(
+        writer,
+        "({}.{:06}) can{} {:X}#",
+        timestamp_sec, timestamp_usec, bus_id, can_id
+    )
+    .is_err()
+    {
+        return 0;
+    }
+
+    // Write data bytes as hex
+    for byte in data {
+        if write!(writer, "{:02X}", byte).is_err() {
+            return 0;
+        }
+    }
+
+    // Newline
+    if writeln!(writer).is_err() {
+        return 0;
+    }
+
+    writer.len()
+}
+
 pub fn test_sd_card(
     spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins,
     sclk: impl esp_idf_svc::hal::gpio::OutputPin,
@@ -17,6 +91,42 @@ pub fn test_sd_card(
     use log::info;
 
     info!("Starting SD card test...");
+
+    // Test candump formatting
+    {
+        let mut buf = [0u8; 128];
+        let len = format_candump(
+            &mut buf,
+            1678901234,
+            567890,
+            0,
+            0x123,
+            &[0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88],
+        );
+        let formatted = core::str::from_utf8(&buf[..len]).unwrap();
+        info!("Candump format test: {}", formatted.trim());
+        info!("Formatted length: {} bytes", len);
+    }
+
+    // Determine actual maximum candump frame size
+    {
+        let mut buf = [0u8; 256];
+
+        // Worst case: max timestamp, extended ID, max data
+        let max_size = format_candump(
+            &mut buf,
+            u64::MAX,   // Max timestamp seconds (20 digits)
+            999999,     // Max microseconds (6 digits)
+            9,          // Max single-digit bus
+            0x1FFFFFFF, // Max extended CAN ID (29-bit)
+            &[0xFF; 8], // Max 8 bytes data
+        );
+
+        let formatted = core::str::from_utf8(&buf[..max_size]).unwrap();
+        info!("Maximum candump frame size test:");
+        info!("  Formatted: {}", formatted.trim());
+        info!("  Size: {} bytes", max_size);
+    }
 
     let spi_driver = SpiDriver::new(
         spi_peripheral,

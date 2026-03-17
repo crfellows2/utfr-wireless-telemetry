@@ -176,12 +176,123 @@ CAN Interrupt → CAN Task → 4KB Batch Buffer → SD Card
 
 **Size**: ~45-60 bytes per frame (formatted)
 
-## Open Questions
+## File Growth Rate Analysis
 
-1. **RTC Integration**: Need timestamp source (current uses microseconds since boot)
-2. **File Rotation**: Strategy for managing log file sizes (daily? size-based?)
-3. **Error Handling**: Behavior when SD card fills or fails
-4. **Power Loss**: Data loss window = channel size + batch buffer (~260 frames max)
+### Expected Data Rates
+
+**CAN Frame Rate** (realistic with overhead):
+- Single 1Mbit/s bus: ~4,000-5,000 frames/sec max
+- Dual bus at 90% load: ~10,000 frames/sec
+- Dual bus at 50% load: ~5,000 frames/sec
+- Dual bus at 10% load: ~1,000 frames/sec
+
+**Log File Growth**:
+
+| Load Level | Frames/sec | MB/min | GB/hour | Time to Fill 32GB |
+|------------|-----------|--------|---------|-------------------|
+| High (90%) | 10,000 | 29.3 | 1.76 | ~18 hours |
+| Medium (50%) | 5,000 | 14.6 | 0.88 | ~36 hours |
+| Low (10%) | 1,000 | 2.9 | 0.18 | ~7.6 days |
+
+**Typical Testing Session**:
+- Duration: 30 min - 2 hours
+- File size: 0.5 - 2 GB per session
+- 32GB card capacity: ~20-30 testing sessions
+
+**Write Speed Margin**:
+- Required (high load): 0.488 MB/s
+- Available throughput: 1.2 MB/s
+- **Safety margin**: 2.5x ✅
+
+## File Management Strategy
+
+### File Rotation by Size
+
+**Configuration**:
+- Maximum file size: **100 MB**
+- Reason: Manageable text file size for analysis tools
+- Files easily concatenated when needed
+
+**Rotation Logic**:
+```rust
+if current_file_size + batch_size > MAX_FILE_SIZE {
+    flush_and_close_current_file();
+    create_new_file_with_incremented_counter();
+}
+```
+
+### Filename Convention
+
+**Primary mode** (with RTC):
+```
+can_20260316_143052.txt
+can_20260316_153412.txt
+```
+- Format: `can_YYYYMMDD_HHMMSS.txt`
+- Timestamp when file created
+- Easy to correlate with testing events
+- Natural chronological sorting
+
+**Note**: RTC should always be available in normal operation:
+- Coin cell battery maintains time across power cycles
+- Time syncs automatically on BLE connection for live telemetry
+- Once set, persists indefinitely
+- Fallback NVS counter possible but not a design priority
+
+### Timestamp Sources
+
+**Log timestamp format**: Microsecond precision
+```
+(1678901234.567890)  // Unix epoch with μs precision
+```
+
+**Possible sources** (to be determined during integration):
+- RTC (primary - coin cell backed)
+- BLE time sync (happens on connection anyway)
+- CAN bus time frames (if decoded)
+- ESP32 timer (microseconds since boot)
+
+### SD Card Full Handling
+
+**Simple approach**:
+1. Attempt to write batch
+2. If write fails with storage full error:
+   - Set `sd_full` flag
+   - Stop logging
+   - Display status on web frontend
+3. No automatic deletion or circular buffer (initial implementation)
+
+**User feedback** (via web frontend):
+- Current file: `can_20260316_143052.txt`
+- Current file size: `45.2 MB / 100 MB`
+- Total SD usage: `8.3 GB / 29.8 GB (27%)`
+- Logging status: `Active` / `Stopped - SD Full`
+- Number of files: `12`
+
+### Power Loss Considerations
+
+**Data loss window**:
+- Embassy channel: 256 frames
+- Batch buffer: ~80 frames
+- **Maximum loss**: ~336 frames (~17ms at 20k frames/sec)
+
+**Mitigation**:
+- File buffering handled by FATFS
+- Periodic flush could be added (trade-off with write performance)
+- Acceptable for testing/telemetry use case
+
+## Future Enhancements
+
+### Wireless File Access
+
+**Notes for future investigation**:
+- BLE used for live status updates (same pipeline as CAN signal relay)
+- Could add simple static file server or network drive for log downloads
+- ESP file sharing is fairly common - likely public libraries or ESP services available
+
+### Circular Buffer with Auto-Cleanup
+
+**Concept**: Delete oldest files when SD card reaches capacity limit to enable continuous logging
 
 ## Test Code Location
 
