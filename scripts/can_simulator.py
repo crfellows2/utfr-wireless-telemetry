@@ -10,11 +10,15 @@
 #
 # Topic: can/<bus>/<message>/<signal>
 # Payload: JSON with descriptive key → {"Motor RPM": 3200}
+#
+# USAGE:
+#   python3 can_simulator.py
+#   Override broker: MQTT_BROKER=192.168.1.100 python3 can_simulator.py
 
 import paho.mqtt.client as mqtt
-import json, time, math, random
+import json, time, math, random, os
 
-BROKER = "mosquitto"
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "telemetry.local")
 PORT = 1883
 
 # Michigan FSAE Endurance Track 2023 — 59 waypoints traced from official map
@@ -72,7 +76,7 @@ def get_car_gps(speed_mps, dt):
     return TRACK[0]
 
 client = mqtt.Client()
-client.connect(BROKER, PORT)
+client.connect(MQTT_BROKER, PORT)
 client.loop_start()
 print("Publishing simulated UTFR CAN data (realistic driver)...")
 print(f"Track: {len(TRACK)} waypoints, {TRACK_LEN:.0f}m lap")

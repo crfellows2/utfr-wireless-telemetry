@@ -4,13 +4,13 @@
 # and publishes them back to metrics/<name> topics.
 #
 # USAGE:
-#   python3 math_channels.py                        (uses localhost)
-#   BROKER=telemetry.local python3 math_channels.py (LAN)
+#   python3 math_channels.py
+#   Override broker: MQTT_BROKER=192.168.1.100 python3 math_channels.py
 
-import json, math, time, os, collections
+import json, math, time, collections, os
 import paho.mqtt.client as mqtt
 
-BROKER = os.environ.get("BROKER", "localhost")
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "telemetry.local")
 PORT = 1883
 
 # ─── Vehicle Parameters (UTFR UT26) ───
@@ -231,17 +231,17 @@ def on_message(client, userdata, msg):
         pass
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected to {BROKER}:{PORT}")
+    print(f"Connected to {MQTT_BROKER}:{PORT}")
     client.subscribe("can/#")
     print("Subscribed — computing math channels at 10Hz...")
 
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(BROKER, PORT)
+client.connect(MQTT_BROKER, PORT)
 client.loop_start()
 
-print(f"UTFR Math Channels v2 — connecting to {BROKER}:{PORT}")
+print(f"UTFR Math Channels v2 — connecting to {MQTT_BROKER}:{PORT}")
 try:
     while True:
         compute(client)

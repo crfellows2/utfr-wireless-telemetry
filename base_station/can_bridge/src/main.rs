@@ -99,10 +99,6 @@ async fn main() {
             "/",
             get(|| async { axum::response::Html(include_str!("../static/index.html")) }),
         )
-        .route(
-            "/track",
-            get(|| async { axum::response::Html(include_str!("../static/track.html")) }),
-        )
         .merge(config::routes::router());
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     info!("Web server listening on http://0.0.0.0:8080");

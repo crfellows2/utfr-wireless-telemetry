@@ -2,11 +2,15 @@
 #
 # Scores driver technique in real-time and generates recommendations.
 # Publishes numeric metrics as JSON, text recommendations as raw strings.
+#
+# USAGE:
+#   python3 driver_analysis.py
+#   Override broker: MQTT_BROKER=192.168.1.100 python3 driver_analysis.py
 
 import json, math, time, os, collections
 import paho.mqtt.client as mqtt
 
-BROKER = os.environ.get("BROKER", "localhost")
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "telemetry.local")
 PORT = 1883
 latest = {}
 
@@ -214,17 +218,17 @@ def on_message(client, userdata, msg):
         pass
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected to {BROKER}:{PORT}")
+    print(f"Connected to {MQTT_BROKER}:{PORT}")
     client.subscribe("can/#")
     print("Analyzing driver performance at 10Hz...")
 
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(BROKER, PORT)
+client.connect(MQTT_BROKER, PORT)
 client.loop_start()
 
-print(f"UTFR Driver Analysis — connecting to {BROKER}:{PORT}")
+print(f"UTFR Driver Analysis — connecting to {MQTT_BROKER}:{PORT}")
 try:
     while True:
         analyze(client)

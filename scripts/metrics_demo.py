@@ -23,9 +23,8 @@
 #   format for consistency.
 #
 # RUNNING
-#   On the LAN:       set BROKER = "telemetry.local"  (recommended)
-#   On the Pi:        set BROKER = "localhost"
-#   In the compose:   set BROKER = "mosquitto"
+#   python3 metrics_demo.py
+#   Override broker: MQTT_BROKER=192.168.1.100 python3 metrics_demo.py
 #
 #   This script is not Python-specific — any MQTT client works.
 #   Connect on port 1883 (TCP) or port 9001 (WebSockets) for browser/MATLAB.
@@ -34,10 +33,11 @@
 #   pip install paho-mqtt
 
 import json
+import os
 
 import paho.mqtt.client as mqtt
 
-BROKER = "telemetry.local"
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "telemetry.local")
 
 latest = {}
 
@@ -65,7 +65,7 @@ def on_message(client, userdata, msg):
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_message = on_message
-client.connect(BROKER, 1883)
+client.connect(MQTT_BROKER, 1883)
 client.subscribe("can/bus0/HIGHSPEED/MotorSpeed")
 client.subscribe("can/bus1/FRONT_WHEELSPEEDS/FL_WHEELSPEED")
 client.loop_forever()

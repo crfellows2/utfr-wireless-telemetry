@@ -188,7 +188,7 @@ function advance(dt) {
 function val(p) { try { const d=JSON.parse(p); return typeof d==='object'?Object.values(d)[0]:d; } catch(e) { return parseFloat(p); } }
 function upd(id,v,dec=0) { const e=document.getElementById(id); if(e&&!isNaN(v)) e.textContent=Number(v).toFixed(dec); }
 
-const ws = `ws://${window.location.hostname}:9001`;
+const ws = 'ws://telemetry.local:9001';
 const mq = mqtt.connect(ws);
 mq.on('connect', () => { document.getElementById('status').textContent='Live'; document.getElementById('status').className='connected'; mq.subscribe('can/#'); mq.subscribe('metrics/#'); });
 mq.on('close', () => { document.getElementById('status').textContent='Disconnected'; document.getElementById('status').className='disconnected'; });

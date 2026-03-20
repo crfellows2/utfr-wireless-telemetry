@@ -1,5 +1,9 @@
 # UTFR Wireless Telemetry — Data System Documentation
 
+## Quick Start
+
+See [QUICKSTART.md](QUICKSTART.md) for installation and setup instructions.
+
 ## Overview
 
 This document describes the architecture, design decisions, and usage of the
@@ -205,23 +209,13 @@ directly.
 
 ---
 
-## Writing Metric Scripts
+## Custom Analysis and Visualization
 
-Scripts subscribe to one or more signal topics, compute a metric, and publish
-the result back to the broker. They can run anywhere on the LAN — on the Pi,
-on a teammate's laptop, or on a more powerful machine if compute is needed.
-There is no registration or configuration required to publish metrics.
+Scripts subscribe to MQTT topics, compute custom metrics, and publish results back to the broker. They can run anywhere on the LAN — no registration or configuration required.
 
-See `metrics_demo.py` for a minimal Python example. The same approach works in
-any language with an MQTT client library.
+The `scripts/` directory contains example Python analysis scripts and HTML visualization tools that compute derived metrics (slip ratios, power, energy efficiency) and provide real-time driver performance scoring. These are starting points for the team to modify and extend.
 
-### Deployment options
-
-| Option | Broker address | Notes |
-|---|---|---|
-| Laptop on LAN | `telemetry.local` | Recommended, no setup needed |
-| On the Pi | `localhost` | Fine for lightweight scripts |
-| In the compose | `mosquitto` | For scripts that should always be running |
+Scripts connect to `telemetry.local:1883` (MQTT) or `ws://telemetry.local:9001` (WebSocket for browser tools).
 
 ---
 

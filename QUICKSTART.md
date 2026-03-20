@@ -64,25 +64,25 @@ pip install paho-mqtt --break-system-packages
 
 ## Step 5: Start the Simulator and Analysis Scripts
 
-You need **3 separate terminal windows**, all in the `base_station/can_bridge` folder.
+You need **3 separate terminal windows**, all in the `scripts` folder.
 
 **Terminal 1 — Fake CAN data simulator:**
 ```
-cd base_station/can_bridge
-sed 's/BROKER = "mosquitto"/BROKER = "localhost"/' bridge.py | python3
+cd scripts
+python3 can_simulator.py
 ```
 You should see: `Publishing simulated UTFR CAN data (realistic driver)...`
 
 **Terminal 2 — Math channels (derived metrics):**
 ```
-cd base_station/can_bridge
+cd scripts
 python3 math_channels.py
 ```
-You should see: `Connected to localhost:1883`
+You should see: `Connected to telemetry.local:1883`
 
 **Terminal 3 — Driver performance analysis:**
 ```
-cd base_station/can_bridge
+cd scripts
 python3 driver_analysis.py
 ```
 You should see: `Analyzing driver performance at 10Hz...`
@@ -100,10 +100,12 @@ Open a browser and go to:
 
 For the track map:
 ```
-cd base_station/can_bridge/static
-python3 -m http.server 8888
+cd scripts
+python3 serve_web.py
 ```
-Then open: **http://localhost:8888/track.html**
+Then open: **http://localhost:8888** and click on **track.html**
+
+**Note:** The example scripts in `scripts/` demonstrate how to build custom analysis on top of the core telemetry system. Modify them to suit your team's specific needs.
 
 ---
 
@@ -153,7 +155,7 @@ docker compose down
 ## Troubleshooting
 
 **Grafana shows "No data":**
-- Make sure bridge.py is running in Terminal 1
+- Make sure can_simulator.py is running in Terminal 1
 - Make sure the MQTT datasource has `uid: mqtt` in `grafana/provisioning/datasources/mqtt.yaml`
 - Try: `docker compose down -v` then start again from Step 3
 
