@@ -1,27 +1,188 @@
+# ─── UTFR Wireless Telemetry — Signal Filter Profiles ───
+#
+# Each profile maps to an FSAE event or testing session. Buckets define
+# priority tiers: bucket 0 is highest priority (always transmitted),
+# bucket 1 is next, and bucket 2 is lowest (dropped first when BLE
+# bandwidth is constrained).
+#
+# Signal names must match the CAN signal names in the DBC exactly.
+# frequency_hz is the target rate when bandwidth allows.
+# min_frequency_hz is the floor before the signal is dropped.
+
+# ───────────────────────────────────────────────────────────────────────
+# ACCELERATION
+# ───────────────────────────────────────────────────────────────────────
 [profiles.acceleration]
 description = "FSAE Acceleration Event"
 
-[[profiles.acceleration.buckets.0.signals]]
-name = "Highest Cell Temp"
-frequency_hz = 1.0
-min_frequency_hz = 1.0
+[profiles.acceleration.buckets.0]
+signals = [
+    { name = "AccuCellHighTemp",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "AccuCellAvgTemp",    frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "FC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "RC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "ACM_STATE",          frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "IMD_DUTY_CYCLE",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "LVBattVoltage",      frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "velX",               frequency_hz = 10.0, min_frequency_hz = 1.0  },
+]
 
-[[profiles.acceleration.buckets.0.signals]]
-name = "GPS Speed"
-frequency_hz = 10.0
-min_frequency_hz = 1.0
+[profiles.acceleration.buckets.1]
+signals = [
+    { name = "MotorSpeed",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "ProcessedThrottle",    frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FrontBrakePressure",   frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "LWS_ANGLE",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+]
 
-[[profiles.acceleration.buckets.1.signals]]
-name = "Motor Speed"
-frequency_hz = 100.0
-min_frequency_hz = 10.0
+[profiles.acceleration.buckets.2]
+signals = [
+    { name = "RearBrakePressure",    frequency_hz = 10.0, min_frequency_hz = 0.0  },
+]
 
-[[profiles.acceleration.buckets.1.signals]]
-name = "Steering Angle"
-frequency_hz = 10.0
-min_frequency_hz = 5.0
+# ───────────────────────────────────────────────────────────────────────
+# SKIDPAD
+# ───────────────────────────────────────────────────────────────────────
+[profiles.skidpad]
+description = "FSAE Skidpad Event"
 
-[[profiles.acceleration.buckets.2.signals]]
-name = "FL Damper Pot"
-frequency_hz = 50.0
-min_frequency_hz = 0.0
+[profiles.skidpad.buckets.0]
+signals = [
+    { name = "AccuCellHighTemp",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "AccuCellAvgTemp",    frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "FC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "RC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "ACM_STATE",          frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "IMD_DUTY_CYCLE",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "LVBattVoltage",      frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "velX",               frequency_hz = 10.0, min_frequency_hz = 1.0  },
+]
+
+[profiles.skidpad.buckets.1]
+signals = [
+    { name = "MotorSpeed",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "ProcessedThrottle",    frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FrontBrakePressure",   frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "LWS_ANGLE",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+]
+
+[profiles.skidpad.buckets.2]
+signals = [
+    { name = "RearBrakePressure",    frequency_hz = 10.0, min_frequency_hz = 0.0  },
+]
+
+# ───────────────────────────────────────────────────────────────────────
+# AUTOX
+# ───────────────────────────────────────────────────────────────────────
+[profiles.autox]
+description = "FSAE Autocross Event"
+
+[profiles.autox.buckets.0]
+signals = [
+    { name = "AccuCellHighTemp",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "AccuCellAvgTemp",    frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "FC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "RC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "ACM_STATE",          frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "IMD_DUTY_CYCLE",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "LVBattVoltage",      frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "velX",               frequency_hz = 10.0, min_frequency_hz = 1.0  },
+]
+
+[profiles.autox.buckets.1]
+signals = [
+    { name = "MotorSpeed",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "ProcessedThrottle",    frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FrontBrakePressure",   frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "LWS_ANGLE",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+]
+
+[profiles.autox.buckets.2]
+signals = [
+    { name = "RearBrakePressure",    frequency_hz = 10.0, min_frequency_hz = 0.0  },
+]
+
+# ───────────────────────────────────────────────────────────────────────
+# ENDURANCE
+# ───────────────────────────────────────────────────────────────────────
+[profiles.endurance]
+description = "FSAE Endurance Event — includes SOC/Energy monitoring"
+
+[profiles.endurance.buckets.0]
+signals = [
+    { name = "AccuCellHighTemp",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "AccuCellAvgTemp",    frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "PackSOCCoulomb",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "EnergyCount",        frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "BMSVoltageSummed",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "IMD_DUTY_CYCLE",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "FC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "RC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "ACM_STATE",          frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "LVBattVoltage",      frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "velX",               frequency_hz = 10.0, min_frequency_hz = 1.0  },
+]
+
+[profiles.endurance.buckets.1]
+signals = [
+    { name = "MotorSpeed",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "ProcessedThrottle",    frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FrontBrakePressure",   frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "LWS_ANGLE",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+]
+
+[profiles.endurance.buckets.2]
+signals = [
+    { name = "RearBrakePressure",    frequency_hz = 10.0, min_frequency_hz = 0.0  },
+]
+
+# ───────────────────────────────────────────────────────────────────────
+# TESTING
+# ───────────────────────────────────────────────────────────────────────
+[profiles.testing]
+description = "General testing and shakedown sessions"
+
+[profiles.testing.buckets.0]
+signals = [
+    { name = "AccuCellHighTemp",   frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "AccuCellAvgTemp",    frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "FC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "RC_STATE",           frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "ACM_STATE",          frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "IMD_DUTY_CYCLE",     frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "LVBattVoltage",      frequency_hz = 1.0,  min_frequency_hz = 1.0  },
+    { name = "velX",               frequency_hz = 10.0, min_frequency_hz = 1.0  },
+]
+
+[profiles.testing.buckets.1]
+signals = [
+    { name = "MotorSpeed",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RL_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "RR_WHEELSPEED",        frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "ProcessedThrottle",    frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "FrontBrakePressure",   frequency_hz = 10.0, min_frequency_hz = 5.0  },
+    { name = "LWS_ANGLE",           frequency_hz = 10.0, min_frequency_hz = 5.0  },
+]
+
+[profiles.testing.buckets.2]
+signals = [
+    { name = "RearBrakePressure",    frequency_hz = 10.0, min_frequency_hz = 0.0  },
+]

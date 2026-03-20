@@ -184,12 +184,12 @@ fn example() -> ProfileConfig {
                         Bucket {
                             signals: vec![
                                 SignalConfig {
-                                    signal: SignalRef::Name("Highest Cell Temp".to_string()),
+                                    signal: SignalRef::Name("AccuCellHighTemp".to_string()),
                                     frequency_hz: 1.0,
                                     min_frequency_hz: 1.0,
                                 },
                                 SignalConfig {
-                                    signal: SignalRef::Name("GPS Speed".to_string()),
+                                    signal: SignalRef::Name("velX".to_string()),
                                     frequency_hz: 10.0,
                                     min_frequency_hz: 1.0,
                                 },
@@ -201,12 +201,12 @@ fn example() -> ProfileConfig {
                         Bucket {
                             signals: vec![
                                 SignalConfig {
-                                    signal: SignalRef::Name("Motor Speed".to_string()),
-                                    frequency_hz: 100.0,
+                                    signal: SignalRef::Name("MotorSpeed".to_string()),
+                                    frequency_hz: 10.0,
                                     min_frequency_hz: 10.0,
                                 },
                                 SignalConfig {
-                                    signal: SignalRef::Name("Steering Angle".to_string()),
+                                    signal: SignalRef::Name("LWS_ANGLE".to_string()),
                                     frequency_hz: 10.0,
                                     min_frequency_hz: 5.0,
                                 },
@@ -217,7 +217,7 @@ fn example() -> ProfileConfig {
                         "2".to_string(),
                         Bucket {
                             signals: vec![SignalConfig {
-                                signal: SignalRef::Name("FL Damper Pot".to_string()),
+                                signal: SignalRef::Name("RearBrakePressure".to_string()),
                                 frequency_hz: 50.0,
                                 min_frequency_hz: 0.0,
                             }],
@@ -238,7 +238,7 @@ mod tests {
         let toml = r#"
             [profiles.acceleration.buckets.0]
             signals = [
-                { name = "Motor Speed", frequency_hz = 100.0, min_frequency_hz = 10.0 },
+                { name = "MotorSpeed", frequency_hz = 100.0, min_frequency_hz = 10.0 },
             ]
         "#;
         let config = parse(toml).unwrap();
@@ -263,10 +263,10 @@ mod tests {
     fn test_bucket_ordering() {
         let toml = r#"
             [profiles.acceleration.buckets.10]
-            signals = [{ name = "GPS Speed", frequency_hz = 50.0, min_frequency_hz = 5.0 }]
+            signals = [{ name = "velX", frequency_hz = 50.0, min_frequency_hz = 5.0 }]
 
             [profiles.acceleration.buckets.1]
-            signals = [{ name = "Motor Speed", frequency_hz = 100.0, min_frequency_hz = 10.0 }]
+            signals = [{ name = "MotorSpeed", frequency_hz = 100.0, min_frequency_hz = 10.0 }]
         "#;
         let config = parse(toml).unwrap();
         let mut keys: Vec<u32> = config.profiles["acceleration"]
@@ -282,7 +282,7 @@ mod tests {
     fn test_invalid_bucket_key() {
         let toml = r#"
             [profiles.acceleration.buckets.abc]
-            signals = [{ name = "Motor Speed", frequency_hz = 100.0, min_frequency_hz = 10.0 }]
+            signals = [{ name = "MotorSpeed", frequency_hz = 100.0, min_frequency_hz = 10.0 }]
         "#;
         assert!(parse(toml).is_err());
     }
@@ -291,7 +291,7 @@ mod tests {
     fn test_min_exceeds_max() {
         let toml = r#"
             [profiles.acceleration.buckets.0]
-            signals = [{ name = "Motor Speed", frequency_hz = 10.0, min_frequency_hz = 100.0 }]
+            signals = [{ name = "MotorSpeed", frequency_hz = 10.0, min_frequency_hz = 100.0 }]
         "#;
         assert!(parse(toml).is_err());
     }
@@ -300,7 +300,7 @@ mod tests {
     fn test_invalid_frequency() {
         let toml = r#"
             [profiles.acceleration.buckets.0]
-            signals = [{ name = "Motor Speed", frequency_hz = -1.0, min_frequency_hz = 0.0 }]
+            signals = [{ name = "MotorSpeed", frequency_hz = -1.0, min_frequency_hz = 0.0 }]
         "#;
         assert!(parse(toml).is_err());
     }

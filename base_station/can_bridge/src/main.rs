@@ -43,9 +43,9 @@ async fn mqtt_publisher(broker: String) {
 
     // Test values (constants for connection testing)
     let signals = [
-        ("can/bus0/engine_rpm", 5000.0),
-        ("can/bus0/vehicle_speed", 75.5),
-        ("can/bus0/coolant_temp", 85.0),
+        ("can/bus0/HIGHSPEED/MotorSpeed", 3200.0),
+        ("can/bus0/BMS_TEMPERATURES/AccuCellHighTemp", 32.5),
+        ("can/bus0/INVTEMPS3/CoolantTemp", 38.0),
     ];
 
     loop {
@@ -98,6 +98,10 @@ async fn main() {
         .route(
             "/",
             get(|| async { axum::response::Html(include_str!("../static/index.html")) }),
+        )
+        .route(
+            "/track",
+            get(|| async { axum::response::Html(include_str!("../static/track.html")) }),
         )
         .merge(config::routes::router());
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
