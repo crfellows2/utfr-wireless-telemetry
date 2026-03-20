@@ -1,0 +1,20 @@
+[build]
+target = "riscv32imac-esp-espidf"
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --flash-size 8mb --monitor"
+rustflags = [ "--cfg",  "espidf_time64"]
+
+[unstable]
+build-std = ["std", "panic_abort"]
+
+[env]
+MCU="esp32c6"
+# Note: this variable is not used by the pio builder (`cargo build --features pio`)
+ESP_IDF_VERSION = "v5.3.3"
+
+# git clone --jobs=12 --recursive --depth 1 --shallow-submodules --branch v5.3.3 https://github.com/espressif/esp-idf.git /home/crfel/Personal/4th_year/Capstone/utfr-wireless-telemetry/ble_test/.embuild/espressif/esp-idf/v5.3.3
+
+# [unstable]
+# build-std = ["std", "panic_abort"]

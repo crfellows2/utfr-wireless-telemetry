@@ -39,16 +39,14 @@ fn main() {
     let rtc_sda = pins.gpio1;
     let rtc_scl = pins.gpio0;
 
-    log::info!("Hello, world!");
-
     // Initialize NVS for storing RTC metadata
     let nvs_partition = EspDefaultNvsPartition::take().expect("Failed to get NVS partition");
-    let mut nvs = EspNvs::new(nvs_partition, "rtc_config", true)
-        .expect("Failed to initialize NVS storage");
+    let mut nvs =
+        EspNvs::new(nvs_partition, "rtc_config", true).expect("Failed to initialize NVS storage");
 
     // Initialize RTC hardware
-    let mut rtc_manager = rtc::RtcManager::new(peripherals.i2c0, rtc_sda, rtc_scl)
-        .expect("Failed to initialize RTC");
+    let mut rtc_manager =
+        rtc::RtcManager::new(peripherals.i2c0, rtc_sda, rtc_scl).expect("Failed to initialize RTC");
 
     // Initialize or validate RTC time
     rtc_manager

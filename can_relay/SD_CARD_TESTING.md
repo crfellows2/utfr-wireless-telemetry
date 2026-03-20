@@ -96,12 +96,9 @@ All benchmarks performed writing to `/sd/` mount point with DMA-enabled SPI.
 
 **CAN Bus Specifications**:
 - Two 1Mbit/s CAN buses
-- Theoretical max: 2Mbit/s = 250 KB/s raw data
-- With candump formatting (~60 bytes/frame): ~500-750 KB/s
 
 **Write Performance**:
 - SD throughput: 1.2 MB/s
-- **Safety margin**: ~2x
 
 ### Hardware FIFO Considerations
 
