@@ -37,10 +37,11 @@ Car ESP32 (2x CAN) ──BLE──► Receiver ESP32 ──USB──► Pi 4B Ba
 
 | Service | Description |
 |---|---|
+| `nginx` | Reverse proxy on port 80 - primary access point |
 | `mosquitto` | MQTT broker, TCP port 1883, WebSocket port 9001 |
 | `mdns` | Advertises `telemetry.local` via mDNS so consumers don't need to know the Pi's IP |
-| `can_bridge` | Receives decoded signals from USB, resolves topic paths via DBC, publishes to MQTT. Serves config web UI on port 8080 |
-| `grafana` | Live signal dashboard, port 3000 |
+| `can_bridge` | Receives decoded signals from USB, resolves topic paths via DBC, publishes to MQTT. Config UI at `/link-config` (also exposed on :8080) |
+| `grafana` | Live signal dashboard at `/` (also exposed on :3000) |
 
 ---
 
@@ -221,7 +222,7 @@ Scripts connect to `telemetry.local:1883` (MQTT) or `ws://telemetry.local:9001` 
 
 ## Base Station Web UI
 
-The Axum web server at `http://telemetry.local:8080` provides:
+The wireless link configuration UI is available at `http://telemetry.local/link-config` and provides:
 
 - `GET /config` — returns current filter profile config as TOML (or an example if none uploaded)
 - `POST /config` — upload and apply a new filter profile config
@@ -231,13 +232,17 @@ The Axum web server at `http://telemetry.local:8080` provides:
 The config is validated on upload and an error is returned if parsing fails.
 Valid configs are persisted to disk and survive restarts.
 
+(Also accessible directly at `http://telemetry.local:8080` for debugging)
+
 ---
 
 ## Grafana Dashboard
 
-Grafana is available at `http://telemetry.local:3000`. The MQTT datasource is
+Grafana is available at `http://telemetry.local`. The MQTT datasource is
 pre-configured and connects to the broker automatically. Anonymous access is
 enabled — no login required.
 
 To monitor a signal, go to **Explore**, select the MQTT datasource, and
 subscribe to a topic such as `can/bus0/EngineData/engine_rpm`.
+
+(Also accessible directly at `http://telemetry.local:3000` for debugging)

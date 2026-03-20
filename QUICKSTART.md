@@ -95,7 +95,8 @@ Open a browser and go to:
 
 | What | URL |
 |------|-----|
-| **Grafana Dashboards** | http://localhost:3000 |
+| **Grafana Dashboards** | http://telemetry.local |
+| **Link Configuration** | http://telemetry.local/link-config |
 | **Live Track Map** | Open a 4th terminal, then: |
 
 For the track map:
@@ -104,6 +105,9 @@ cd scripts
 python3 serve_web.py
 ```
 Then open: **http://localhost:8888** and click on **track.html**
+
+**Note:** Grafana is also accessible at http://localhost:3000 for debugging.
+**Note:** If mDNS doesn't work, use `localhost` (on the Pi) or the machine's IP address instead of `telemetry.local`.
 
 **Note:** The example scripts in `scripts/` demonstrate how to build custom analysis on top of the core telemetry system. Modify them to suit your team's specific needs.
 
@@ -132,11 +136,12 @@ Shows the Michigan Endurance 2023 track with a red dot representing the car movi
 
 ## Accessing from Another Device on the Same Network
 
-If running on a Raspberry Pi (or any other machine), replace `localhost` with the machine's IP address. For example if the Pi's IP is `192.168.2.71`:
-- Grafana: `http://192.168.2.71:3000`
-- Track Map: `http://192.168.2.71:8888/track.html`
+Replace `localhost` with `telemetry.local` from any device on the same network:
+- Grafana: `http://telemetry.local`
+- Link Configuration: `http://telemetry.local/link-config`
+- Track Map: `http://telemetry.local:8888/track.html`
 
-To find the IP: `hostname -I`
+If mDNS doesn't work, use the machine's IP address instead (find it with `hostname -I`).
 
 ---
 
