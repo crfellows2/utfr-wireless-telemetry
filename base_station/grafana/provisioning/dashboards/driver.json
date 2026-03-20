@@ -1,0 +1,679 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "title": "Driver Score & Recommendations",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Overall Score",
+      "description": "Composite driver score. Weighted: 40% pedal discipline, 30% throttle smoothness, 30% steering smoothness.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/overall_score",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 75,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Throttle Smoothness",
+      "description": "How smoothly throttle is applied. Jerkiness = lost traction. 100=glass smooth.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/throttle_smoothness",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 75,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Steering Smoothness",
+      "description": "Steering input smoothness. Corrections indicate car instability or poor technique.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/steer_smoothness",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 75,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Pedal Discipline",
+      "description": "How cleanly throttle and brake are separated. Overlap = wasted energy except during trail braking.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/overlap_score",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 75,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Brake Consistency",
+      "description": "Variance in peak brake pressure across events. Consistent = repeatable.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/brake_consistency",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 50,
+                "color": "yellow"
+              },
+              {
+                "value": 75,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Grip Used",
+      "description": "Combined lateral+longitudinal G as % of max grip (~1.6G). Higher = pushing harder.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/grip_util",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Peak Lat G",
+      "description": "Rolling 10s peak lateral G. Shows max cornering force achieved.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/peak_lat_g",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Technique Analysis",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Throttle Smoothness Trend",
+      "description": "Smoothness over time. Drops during high-stress sections reveal where driver struggles.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/throttle_smoothness",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Pedal Overlap %",
+      "description": "% of time both throttle and brake are pressed. Should be <5% for clean driving.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/overlap_pct",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Coasting %",
+      "description": "% time neither on throttle nor brake. High coasting = lost time. Should be <15%.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/coast_pct",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Recommendations",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Engineer Advice",
+      "description": "Real-time recommendations based on driver behavior analysis. Updated every 5 seconds. Relay to driver via radio.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "driver/recommendation",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "options": {
+        "colorMode": "background",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "orange"
+              },
+              {
+                "value": 3,
+                "color": "yellow"
+              },
+              {
+                "value": 5,
+                "color": "red"
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "GOOD: Clean driving, maintain this pace",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "THROTTLE: Be more progressive on corner exit \u2014 jerky inputs lose traction",
+                  "color": "orange"
+                },
+                "2": {
+                  "text": "STEERING: Reduce mid-corner corrections \u2014 smooth inputs or check setup",
+                  "color": "orange"
+                },
+                "3": {
+                  "text": "PEDALS: Separate throttle and brake \u2014 overlap wastes energy and heats brakes",
+                  "color": "yellow"
+                },
+                "4": {
+                  "text": "PACE: Too much coasting \u2014 stay on a pedal, minimize dead time",
+                  "color": "yellow"
+                },
+                "5": {
+                  "text": "TRACTION: Wheelspin detected \u2014 ease onto throttle more gradually",
+                  "color": "red"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 39,
+  "tags": [
+    "utfr",
+    "driver"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Driver Performance",
+  "uid": "utfr-driver",
+  "version": 1
+}

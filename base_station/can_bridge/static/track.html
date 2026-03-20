@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTFR Live Track Map</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0d1117; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        #header { background: #161b22; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; }
+        #header h1 { font-size: 16px; font-weight: 600; color: #8b949e; }
+        #header h1 span { color: #58a6ff; }
+        #status { font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+        .connected { background: #0d4429; color: #3fb950; }
+        .disconnected { background: #5d1a20; color: #f85149; }
+        #track-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        canvas { max-width: 100%; max-height: 100%; }
+        #telemetry-bar { background: #161b22; padding: 14px 20px; display: flex; gap: 20px; justify-content: center; border-top: 1px solid #30363d; flex-wrap: wrap; }
+        .metric { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+        .metric-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+        .metric-label { font-size: 9px; color: #8b949e; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+        .speed { color: #3fb950; } .rpm { color: #58a6ff; } .throttle { color: #d29922; }
+        .brake { color: #f85149; } .soc { color: #a371f7; } .temp { color: #f0883e; }
+        .steer { color: #39d2e3; } .lap { color: #db61a2; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1><span>UTFR</span>&nbsp; Live Track Map — Michigan Endurance 2023</h1>
+        <span id="status" class="disconnected">Connecting...</span>
+    </div>
+    <div id="track-container"><canvas id="track"></canvas></div>
+    <div id="telemetry-bar">
+        <div class="metric"><span class="metric-value speed" id="v-speed">--</span><span class="metric-label">km/h</span></div>
+        <div class="metric"><span class="metric-value rpm" id="v-rpm">--</span><span class="metric-label">Motor RPM</span></div>
+        <div class="metric"><span class="metric-value throttle" id="v-throttle">--</span><span class="metric-label">Throttle Nm</span></div>
+        <div class="metric"><span class="metric-value brake" id="v-brake">--</span><span class="metric-label">Brake psi</span></div>
+        <div class="metric"><span class="metric-value steer" id="v-steer">--</span><span class="metric-label">Steering °</span></div>
+        <div class="metric"><span class="metric-value soc" id="v-soc">--</span><span class="metric-label">SOC %</span></div>
+        <div class="metric"><span class="metric-value temp" id="v-temp">--</span><span class="metric-label">Cell °C</span></div>
+        <div class="metric"><span class="metric-value lap" id="v-lap">0</span><span class="metric-label">Laps</span></div>
+    </div>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// TRACK — traced from the official Endurance 2023 map red driving line
+// Feet: x=0 right edge → x=2000 left edge, y=0 bottom → y=500 top
+// Counter-clockwise from start/finish (bottom right)
+// ═══════════════════════════════════════════════════════════════════
+const T = [
+    [30,85],[80,72],[140,62],[200,55],[260,62],[320,55],[370,52],
+    [410,48],[440,22],[475,62],[515,16],[555,68],[600,14],[645,62],[690,18],[735,68],[780,22],[830,58],[875,38],[920,55],
+    [960,62],[1000,72],[1050,88],[1100,108],[1150,135],[1200,162],[1250,192],[1300,218],[1350,242],
+    [1400,268],[1450,292],[1500,312],[1550,332],[1585,348],[1615,362],[1645,378],
+    [1672,392],[1695,406],[1712,418],[1718,428],[1712,438],[1695,445],[1672,448],[1645,448],
+    [1600,442],[1550,436],[1500,430],[1450,426],[1400,426],[1350,430],[1300,436],[1250,440],[1200,440],[1150,436],[1100,428],[1050,422],[1000,426],[950,434],[900,440],[850,438],[800,432],[750,426],[700,430],[650,436],[600,442],[550,444],[500,442],[450,436],[400,428],[350,420],
+    [300,414],[250,402],[200,388],[160,368],[128,345],[102,320],[82,295],
+    [68,265],[58,235],[52,205],[52,175],[55,148],[58,120],[52,98],
+    [38,85],[30,85]
+];
+
+const TW = 2050, TH = 500, ASPECT = TW / TH;
+
+// Precompute path distances
+let segs = [], totalD = 0;
+for (let i = 0; i < T.length - 1; i++) {
+    const d = Math.hypot(T[i+1][0]-T[i][0], T[i+1][1]-T[i][1]);
+    segs.push(d); totalD += d;
+}
+
+function posAt(dist) {
+    dist = ((dist % totalD) + totalD) % totalD;
+    let d = dist;
+    for (let i = 0; i < segs.length; i++) {
+        if (d < segs[i]) {
+            const f = d / segs[i];
+            return [T[i][0]+f*(T[i+1][0]-T[i][0]), T[i][1]+f*(T[i+1][1]-T[i][1])];
+        }
+        d -= segs[i];
+    }
+    return T[0];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+const canvas = document.getElementById('track');
+const ctx = canvas.getContext('2d');
+let carDist = 0, carTrail = [], lapCount = 0, lastNear = false, currentSpeed = 0;
+
+function resize() {
+    const c = document.getElementById('track-container');
+    const cw = c.clientWidth - 40, ch = c.clientHeight - 40;
+    if (cw/ch > ASPECT) { canvas.height = ch; canvas.width = ch * ASPECT; }
+    else { canvas.width = cw; canvas.height = cw / ASPECT; }
+}
+
+function px(fx, fy) {
+    const p = 25, dw = canvas.width-p*2, dh = canvas.height-p*2;
+    return [p + (TW-fx)/TW * dw, p + (TH-fy)/TH * dh];
+}
+
+function drawPath(points, style, width, dash) {
+    ctx.beginPath();
+    for (let i = 0; i < points.length; i++) {
+        const [x,y] = px(points[i][0], points[i][1]);
+        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = style; ctx.lineWidth = width;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+    ctx.stroke(); ctx.setLineDash([]);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle grid
+    ctx.strokeStyle = '#151b23'; ctx.lineWidth = 0.5;
+    for (let ft = 0; ft <= 2000; ft += 500) {
+        const [x,y1] = px(ft,0), [,y2] = px(ft,500);
+        ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke();
+    }
+    ctx.fillStyle = '#21262d'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+    for (let ft = 0; ft <= 2000; ft += 500) { const [x,y] = px(ft,0); ctx.fillText(ft+"'", x, y+12); }
+
+    // Track: border → surface → centerline
+    drawPath(T, '#1c2128', 16);
+    drawPath(T, '#2d333b', 10);
+    drawPath(T, '#444c56', 1, [6,5]);
+
+    // Start/finish chevrons
+    const [sx,sy] = px(T[0][0], T[0][1]);
+    ctx.save();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    const [u1x,u1y] = px(T[0][0], T[0][1]+25);
+    const [u2x,u2y] = px(T[0][0], T[0][1]-25);
+    ctx.beginPath(); ctx.moveTo(u1x,u1y); ctx.lineTo(u2x,u2y); ctx.stroke();
+    ctx.fillStyle = '#8b949e'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('START/FINISH', sx+10, sy-12);
+    ctx.restore();
+
+    // Section labels
+    ctx.fillStyle = '#30363d'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    let [lx,ly] = px(600, -15); ctx.fillText('SLALOM', lx, ly);
+    [lx,ly] = px(1718, 460); ctx.fillText('HAIRPIN', lx, ly);
+    [lx,ly] = px(1000, 465); ctx.fillText('BACK STRAIGHT', lx, ly);
+
+    // Car trail
+    if (carTrail.length > 2) {
+        drawPath(carTrail, 'rgba(56,139,253,0.12)', 8);
+        drawPath(carTrail, 'rgba(56,139,253,0.5)', 2.5);
+    }
+
+    // Car dot with glow
+    const pos = posAt(carDist);
+    const [cx,cy] = px(pos[0], pos[1]);
+    const g = ctx.createRadialGradient(cx,cy,0, cx,cy,18);
+    g.addColorStop(0, 'rgba(248,81,73,0.5)'); g.addColorStop(1, 'rgba(248,81,73,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2);
+    ctx.fillStyle = '#f85149'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#30363d'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    const [ttx,tty] = px(50, 485);
+    ctx.fillText('Michigan International Speedway — FSAE Endurance 2023', ttx, tty);
+}
+
+function advance(dt) {
+    carDist += currentSpeed * 3.281 * dt;  // m/s → ft/s
+    const pos = posAt(carDist);
+    carTrail.push(pos);
+    if (carTrail.length > 400) carTrail.shift();
+    const d = Math.hypot(pos[0]-T[0][0], pos[1]-T[0][1]);
+    const near = d < 15;
+    if (near && !lastNear && carTrail.length > 50) {
+        lapCount++;
+        document.getElementById('v-lap').textContent = lapCount;
+        carTrail.length = 0;
+    }
+    lastNear = near;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MQTT
+// ═══════════════════════════════════════════════════════════════════
+function val(p) { try { const d=JSON.parse(p); return typeof d==='object'?Object.values(d)[0]:d; } catch(e) { return parseFloat(p); } }
+function upd(id,v,dec=0) { const e=document.getElementById(id); if(e&&!isNaN(v)) e.textContent=Number(v).toFixed(dec); }
+
+const ws = `ws://${window.location.hostname}:9001`;
+const mq = mqtt.connect(ws);
+mq.on('connect', () => { document.getElementById('status').textContent='Live'; document.getElementById('status').className='connected'; mq.subscribe('can/#'); mq.subscribe('metrics/#'); });
+mq.on('close', () => { document.getElementById('status').textContent='Disconnected'; document.getElementById('status').className='disconnected'; });
+mq.on('message', (t,m) => {
+    const v = val(m.toString());
+    if (t==='metrics/vehicle_speed') { currentSpeed=v/3.6; upd('v-speed',v,1); }
+    if (t==='can/bus0/HIGHSPEED/MotorSpeed') upd('v-rpm',v);
+    if (t==='can/bus0/APPS/ProcessedThrottle') upd('v-throttle',v);
+    if (t==='can/bus0/BRAKE_PRESSURE/FrontBrakePressure') upd('v-brake',v);
+    if (t==='can/bus0/SAS_DATA/LWS_ANGLE') upd('v-steer',v,1);
+    if (t==='can/bus0/PACK_SOC/PackSOCCoulomb') upd('v-soc',v,1);
+    if (t==='can/bus0/BMS_TEMPERATURES/AccuCellHighTemp') upd('v-temp',v,1);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+resize(); window.addEventListener('resize', resize);
+let last = performance.now();
+(function loop(now) {
+    advance(Math.min((now-last)/1000, 0.2));
+    last = now; draw(); requestAnimationFrame(loop);
+})(performance.now());
+</script>
+</body>
+</html>

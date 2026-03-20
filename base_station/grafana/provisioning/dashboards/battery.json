@@ -1,0 +1,1120 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "title": "Pack Status",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "ACM",
+      "description": "3=DRIVE, HV active and healthy.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/ACM/ACM_STATE",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "background_solid",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "LV ON",
+                  "color": "blue"
+                },
+                "2": {
+                  "text": "ENERGIZING",
+                  "color": "yellow"
+                },
+                "3": {
+                  "text": "DRIVE",
+                  "color": "green"
+                },
+                "4": {
+                  "text": "FAULT",
+                  "color": "red"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "ACM Err",
+      "description": "0=OK. 6=BMS, 7=IMD, 8=TEM.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/ACM/ACM_ERROR",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 3,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "background_solid",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "SOC (Coulomb)",
+      "description": "Coulomb-counted SOC. More accurate under load.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_SOC/PackSOCCoulomb",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "minVizWidth": 10,
+        "minVizHeight": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 15,
+                "color": "orange"
+              },
+              {
+                "value": 30,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "SOC (Voltage)",
+      "description": "Voltage-table SOC. Compare with coulomb \u2014 divergence = calibration drift.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_SOC/PackSOCVoltage",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "minVizWidth": 10,
+        "minVizHeight": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 15,
+                "color": "orange"
+              },
+              {
+                "value": 30,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Pack V",
+      "description": "Summed cell voltages from ADBMS chips.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_CURRENT/BMSVoltageSummed",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "volt"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Energy",
+      "description": "Remaining energy in mWh.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_ENERGY/EnergyCount",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Coulomb SOC",
+      "description": "MATH: Independent SOC from coulomb counting. Cross-check against BMS SOC.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/coulomb_soc",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Cell Health",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Highest Cell T",
+      "description": "Hottest cell. BMS faults ~60\u00b0C.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/BMS_TEMPERATURES/AccuCellHighTemp",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 0,
+        "y": 6
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "max": 70,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 45,
+                "color": "yellow"
+              },
+              {
+                "value": 55,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Lowest Cell V",
+      "description": "Below 2.8V risks damage. Above 4.2V = overcharge.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/BMS_VOLTAGES/AccuCellLowVolt",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 3,
+        "y": 6
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "volt",
+          "min": 2.5,
+          "max": 4.3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 2.8,
+                "color": "yellow"
+              },
+              {
+                "value": 3.0,
+                "color": "green"
+              },
+              {
+                "value": 4.2,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cell Temperature Trend",
+      "description": "Watch for high-low spread > 5\u00b0C = cooling imbalance.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/BMS_TEMPERATURES/AccuCellHighTemp",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/BMS_TEMPERATURES/AccuCellAvgTemp",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "can/bus0/BMS_TEMPERATURES/AccuCellLowTemp",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 6,
+        "y": 6
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cell Voltage Trend",
+      "description": "Spread should be < 100mV when balanced.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/BMS_VOLTAGES/AccuCellHighVolt",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/BMS_VOLTAGES/AccuCellAvgVolt",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "can/bus0/BMS_VOLTAGES/AccuCellLowVolt",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 15,
+        "y": 6
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "volt",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Diagnostics",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cell \u0394V (mV)",
+      "description": "MATH: High-Low cell voltage delta in mV. >100mV = investigate.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/cell_dv",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 13
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Cell \u0394T (\u00b0C)",
+      "description": "MATH: High-Low cell temp delta. >5\u00b0C = cooling problem.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/cell_dt",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 13
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Thermal Margin",
+      "description": "MATH: \u00b0C below 55\u00b0C BMS cutoff.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/thermal_headroom",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 13
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "minVizWidth": 10,
+        "minVizHeight": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "max": 30,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 5,
+                "color": "orange"
+              },
+              {
+                "value": 10,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Temp Rise Rate",
+      "description": "MATH: \u00b0C/min temperature rise rate. Extrapolate to predict thermal limit.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/temp_rise_rate",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 13
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Pack R",
+      "description": "MATH: Estimated pack internal resistance from voltage sag under load. Rising = cell degradation.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/pack_resistance",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 13
+      },
+      "options": {
+        "colorMode": "value",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Power & Efficiency",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Pack Power (BMS vs Inverter)",
+      "description": "BMS pack power vs MATH: inverter-side (V\u00d7I). Divergence = losses.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_SOC/PackPower",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "metrics/inverter_power",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 19
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Current & Voltage",
+      "description": "Pack current and summed voltage. Sag under load is normal.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/PACK_CURRENT/PackCurrent",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/PACK_CURRENT/BMSVoltageSummed",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 19
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Energy Efficiency & Range",
+      "description": "MATH: Wh/km consumption and estimated remaining range.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/energy_eff",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "metrics/est_range",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 19
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 39,
+  "tags": [
+    "utfr",
+    "battery"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Battery & Accumulator",
+  "uid": "utfr-battery",
+  "version": 1
+}

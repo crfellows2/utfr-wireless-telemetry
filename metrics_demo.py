@@ -3,16 +3,16 @@
 #
 # TOPIC STRUCTURE
 #   Raw signals:     can/<bus>/<message>/<signal>
-#                    e.g. can/bus0/EngineData/engine_rpm
+#                    e.g. can/bus0/HIGHSPEED/MotorSpeed
 #   Unknown frames:  can/<bus>/unknown/<id>
 #                    e.g. can/bus0/unknown/0x1A3
 #   Metrics:         metrics/<author>/<metric>
 #                    e.g. metrics/john/power_estimate
 #
 #   MQTT wildcards work as expected:
-#     can/#                      all signals
-#     can/bus0/EngineData/#      all signals in one message
-#     can/+/+/engine_rpm         one signal across all buses and messages
+#     can/#                           all signals
+#     can/bus0/HIGHSPEED/#            all signals in one message
+#     can/+/+/MotorSpeed             one signal across all buses and messages
 #
 # PAYLOAD FORMAT
 #   Every signal topic carries a JSON payload:
@@ -46,17 +46,18 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     latest[msg.topic] = data["value"]
 
-    rpm = latest.get("can/bus0/EngineData/engine_rpm")
-    speed = latest.get("can/bus0/WheelSpeeds/fl_wheel_speed")
+    motor_rpm = latest.get("can/bus0/HIGHSPEED/MotorSpeed")
+    fl_speed = latest.get("can/bus1/FRONT_WHEELSPEEDS/FL_WHEELSPEED")
 
-    if rpm is not None and speed is not None:
-        metric = rpm / max(speed, 0.1)  # avoid division by zero
+    if motor_rpm is not None and fl_speed is not None:
+        # Simple slip ratio: (driven wheel speed - free wheel speed) / free wheel speed
+        slip = (motor_rpm - fl_speed) / max(fl_speed, 0.1)
         client.publish(
-            "metrics/demo/rpm_per_speed",
+            "metrics/demo/rear_slip_ratio",
             json.dumps(
                 {
                     "ts": data["ts"],
-                    "value": metric,
+                    "value": round(slip, 4),
                 }
             ),
         )
@@ -65,6 +66,6 @@ def on_message(client, userdata, msg):
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_message = on_message
 client.connect(BROKER, 1883)
-client.subscribe("can/bus0/EngineData/engine_rpm")
-client.subscribe("can/bus0/WheelSpeeds/fl_wheel_speed")
+client.subscribe("can/bus0/HIGHSPEED/MotorSpeed")
+client.subscribe("can/bus1/FRONT_WHEELSPEEDS/FL_WHEELSPEED")
 client.loop_forever()

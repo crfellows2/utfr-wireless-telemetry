@@ -1,0 +1,565 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "title": "Wheel Speeds & Traction",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Wheel Speeds",
+      "description": "Front=undriven truth. L/R split = cornering load transfer.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus1/FRONT_WHEELSPEEDS/FL_WHEELSPEED",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus1/FRONT_WHEELSPEEDS/FR_WHEELSPEED",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "can/bus0/RC_STATE/RL_WHEELSPEED",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        },
+        {
+          "topic": "can/bus0/RC_STATE/RR_WHEELSPEED",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "D"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 14,
+        "x": 0,
+        "y": 1
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Slip Ratios",
+      "description": "MATH: Per-wheel slip vs front avg. +ve=spin, -ve=lock.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/rear_slip",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "metrics/slip_rl",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "metrics/slip_rr",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 14,
+        "y": 1
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rear L-R \u0394",
+      "description": "MATH: RL-RR speed difference. Shows diff behavior in corners.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/rear_lr_diff",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Braking & Steering",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Brake Pressures & Throttle",
+      "description": "Throttle+brake overlap = bad technique (except trail braking).",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/BRAKE_PRESSURE/FrontBrakePressure",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/BRAKE_PRESSURE/RearBrakePressure",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "can/bus0/APPS/ProcessedThrottle",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 10
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Brake Bias",
+      "description": "MATH: Front %. Target 60-70%.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/brake_bias",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 8,
+        "y": 10
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Steering",
+      "description": "Angle and rate. Smooth = good technique.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/SAS_DATA/LWS_ANGLE",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/SAS_DATA/LWS_SPEED",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        }
+      ],
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 12,
+        "y": 10
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Understeer",
+      "description": "MATH: Theoretical - actual yaw rate. +ve=push, -ve=loose.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/understeer",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 10
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "G-Forces",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Lateral & Longitudinal G",
+      "description": "MATH: Normalized to G. Typical FSAE: 1.2-1.8G lateral.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "metrics/lat_g",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "metrics/long_g",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Vertical Loads (TC)",
+      "description": "Estimated Fz per wheel from TC model.",
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "mqtt"
+      },
+      "targets": [
+        {
+          "topic": "can/bus0/TC_DEBUG_2/TC_fz_fl",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "A"
+        },
+        {
+          "topic": "can/bus0/TC_DEBUG_2/TC_fz_fr",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "B"
+        },
+        {
+          "topic": "can/bus0/TC_DEBUG_2/TC_fz_rl",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "C"
+        },
+        {
+          "topic": "can/bus0/TC_DEBUG_2/TC_fz_rr",
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "mqtt"
+          },
+          "refId": "D"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 39,
+  "tags": [
+    "utfr",
+    "suspension"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Suspension & Brakes",
+  "uid": "utfr-suspension",
+  "version": 1
+}
