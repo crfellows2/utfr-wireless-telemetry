@@ -28,5 +28,6 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/local/bin
 COPY --from=builder /app/target/release/can_bridge .
+COPY frontend/dist ./frontend/dist
 
 ENTRYPOINT ["/usr/local/bin/can_bridge"]

@@ -7,6 +7,8 @@ services:
       GF_INSTALL_PLUGINS: grafana-mqtt-datasource
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_SERVER_ROOT_URL: http://telemetry.local
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
 
@@ -45,6 +47,7 @@ services:
     environment:
       MQTT_BROKER: mosquitto
       CONFIG_DIR: /data
+      RUST_LOG: info
     volumes:
       - can_bridge_data:/data
 

@@ -29,7 +29,7 @@ log.info("Starting mDNS advertiser")
 ip = get_local_ip()
 
 log.info("Creating ServiceInfo")
-info = ServiceInfo(
+mqtt_info = ServiceInfo(
     "_mqtt._tcp.local.",
     "telemetry._mqtt._tcp.local.",
     addresses=[ip],
@@ -37,12 +37,21 @@ info = ServiceInfo(
     server="telemetry.local.",  # this registers the hostname
 )
 
+config_info = ServiceInfo(
+    "_http._tcp.local.",
+    "config._http._tcp.local.",
+    addresses=[ip],
+    port=80,
+    server="config.telemetry.local.",
+)
+
 log.info("Starting Zeroconf")
 zc = Zeroconf()
 
-log.info("Registering service")
-zc.register_service(info)
-log.info("Service registered: telemetry.local:1883")
+log.info("Registering services")
+zc.register_service(mqtt_info)
+zc.register_service(config_info)
+log.info("Services registered: telemetry.local:1883, config.telemetry.local:80")
 
 try:
     while True:
@@ -50,7 +59,8 @@ try:
 except KeyboardInterrupt:
     pass
 finally:
-    log.info("Unregistering service")
-    zc.unregister_service(info)
+    log.info("Unregistering services")
+    zc.unregister_service(mqtt_info)
+    zc.unregister_service(config_info)
     zc.close()
     log.info("Done")
