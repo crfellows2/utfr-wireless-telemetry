@@ -1,0 +1,27 @@
+[profiles.acceleration]
+description = "FSAE Acceleration Event"
+
+[[profiles.acceleration.buckets.0.signals]]
+name = "AccuCellHighTemp"
+frequency_hz = 1.0
+min_frequency_hz = 1.0
+
+[[profiles.acceleration.buckets.0.signals]]
+name = "velX"
+frequency_hz = 10.0
+min_frequency_hz = 1.0
+
+[[profiles.acceleration.buckets.1.signals]]
+name = "MotorSpeed"
+frequency_hz = 10.0
+min_frequency_hz = 10.0
+
+[[profiles.acceleration.buckets.1.signals]]
+name = "LWS_ANGLE"
+frequency_hz = 10.0
+min_frequency_hz = 5.0
+
+[[profiles.acceleration.buckets.2.signals]]
+name = "RearBrakePressure"
+frequency_hz = 50.0
+min_frequency_hz = 0.0

@@ -55,6 +55,25 @@ pub async fn mqtt_publisher(broker: String) {
             }
         }
 
+        let storage_msg = json!({
+            "ts": timestamp,
+            "used_gb": 11.25,
+            "total_gb": 32,
+            "write_speed_kbps": 520.4,
+        });
+
+        if let Err(e) = client
+            .publish(
+                "link/storage",
+                QoS::AtLeastOnce,
+                false,
+                storage_msg.to_string().as_bytes(),
+            )
+            .await
+        {
+            error!("Failed to publish: {}", e);
+        }
+
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
 }

@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
+use tracing::info;
 
 // --- Types ---
 
@@ -115,10 +116,14 @@ async fn write_to_disk(input: &str) -> Result<()> {
     tokio::fs::write(&path, input)
         .await
         .context("Failed to write config to disk")?;
+
+    let absolute_path = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+    info!("New config saved to {}", absolute_path.display());
     Ok(())
 }
 
 fn parse(input: &str) -> Result<ProfileConfig> {
+    // FIXME: this from_str will just drop any parts it can't parse instead of erroring
     let config: ProfileConfig = toml::from_str(input).context("Failed to parse config TOML")?;
     validate(&config)?;
     Ok(config)

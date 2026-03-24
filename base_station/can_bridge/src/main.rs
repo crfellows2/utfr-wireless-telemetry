@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
+use std::{collections::HashSet, convert::Infallible, io::BufRead, sync::Arc, time::Duration};
 
 use axum::{
     Router,
@@ -11,8 +11,7 @@ use axum::{
     routing::{get, post},
 };
 use clap::Parser;
-use futures::stream::{self, Stream, StreamExt};
-use nusb::hotplug::HotplugEvent;
+use futures::stream::{self, Stream};
 use serde::Serialize;
 use tokio::{sync::watch, time::sleep};
 use tower_http::services::ServeDir;
@@ -71,7 +70,7 @@ async fn main() {
     });
 
     tokio::spawn(ls_usb(device_tx));
-    // tokio::spawn(mqtt::mqtt_publisher(args.broker.clone()));
+    tokio::spawn(mqtt::mqtt_publisher(args.broker.clone()));
 
     // Set up Axum web server
     let app = Router::new()
@@ -115,60 +114,56 @@ async fn connect_device(
 ) -> impl IntoResponse {
     info!("Connecting to device: {}", id);
 
-    // Find and open the USB device
-    match nusb::list_devices().await {
-        Ok(devices) => {
-            for device_info in devices {
-                if device_info.vendor_id() == 0x303a && device_info.product_id() == 0x1001 {
-                    let device_id = format!("Bus {} Device {}", device_info.busnum(), device_info.device_address());
+    // Open serial port
+    match serialport::new(&id, 115200)
+        .timeout(Duration::from_secs(10))
+        .open()
+    {
+        Ok(mut port) => {
+            info!("Serial port opened: {}", id);
 
-                    if device_id == id {
-                        info!("Found device, attempting to open...");
+            // Spawn task to read logs
+            let port_name = id.clone();
+            tokio::task::spawn_blocking(move || {
+                let mut buf = String::new();
+                let mut reader = std::io::BufReader::new(port);
 
-                        match device_info.open().await {
-                            Ok(device) => {
-                                info!("Device opened successfully!");
-
-                                // Try to read some data
-                                match device.claim_interface(0).await {
-                                    Ok(interface) => {
-                                        info!("Claimed interface 0");
-
-                                        // Try bulk read from endpoint (adjust endpoint as needed)
-                                        match interface.bulk_in::<64>(0x81).await {
-                                            Ok(data) => {
-                                                info!("Read {} bytes: {:?}", data.actual_data().len(), data.actual_data());
-                                            }
-                                            Err(e) => {
-                                                info!("Bulk read error: {:?}", e);
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        info!("Failed to claim interface: {:?}", e);
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                info!("Failed to open device: {:?}", e);
-                                return StatusCode::INTERNAL_SERVER_ERROR;
-                            }
+                loop {
+                    buf.clear();
+                    match reader.read_line(&mut buf) {
+                        Ok(0) => {
+                            // EOF
+                            info!("[{}] EOF reached", port_name);
+                            break;
+                        }
+                        Ok(_) => {
+                            // Got a line, print it (trim trailing newline)
+                            info!("[{}] {}", port_name, buf.trim_end());
+                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                            // Timeout is normal, just continue
+                            continue;
+                        }
+                        Err(e) => {
+                            info!("[{}] Read error: {:?}", port_name, e);
+                            break;
                         }
                     }
                 }
-            }
+                info!("[{}] Reader task ended", port_name);
+            });
+
+            state.device_tx.send_modify(|device_state| {
+                device_state.connected = Some(id.clone());
+            });
+
+            StatusCode::OK
         }
         Err(e) => {
-            info!("Failed to list devices: {:?}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR;
+            info!("Failed to open serial port: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
         }
     }
-
-    state.device_tx.send_modify(|device_state| {
-        device_state.connected = Some(id.clone());
-    });
-
-    StatusCode::OK
 }
 
 async fn disconnect_device(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -184,56 +179,57 @@ async fn disconnect_device(State(state): State<Arc<AppState>>) -> impl IntoRespo
 }
 
 async fn ls_usb(tx: watch::Sender<DeviceState>) {
-    let mut devices: HashMap<nusb::DeviceId, String> = HashMap::new();
+    let mut previous_devices: HashSet<String> = HashSet::new();
 
-    // Get initial device list
-    for device in nusb::list_devices().await.unwrap() {
-        if device.vendor_id() == 0x303a && device.product_id() == 0x1001 {
-            let id = format!("Bus {} Device {}", device.busnum(), device.device_address());
-            devices.insert(device.id(), id);
-        }
-    }
+    loop {
+        let mut current_devices: HashSet<String> = HashSet::new();
 
-    info!("Initial device scan: {} devices", devices.len());
-    tx.send_modify(|state| {
-        state.devices = devices.values().cloned().collect();
-    });
-
-    // Watch for hotplug events
-    let mut hotplug = nusb::watch_devices().unwrap();
-
-    while let Some(event) = hotplug.next().await {
-        match event {
-            HotplugEvent::Connected(device_info) => {
-                if device_info.vendor_id() == 0x303a && device_info.product_id() == 0x1001 {
-                    let id = format!(
-                        "Bus {} Device {}",
-                        device_info.busnum(),
-                        device_info.device_address()
-                    );
-                    info!("Device connected: {}", id);
-                    devices.insert(device_info.id(), id.clone());
-
-                    tx.send_modify(|state| {
-                        state.devices = devices.values().cloned().collect();
-                    });
-                }
-            }
-            HotplugEvent::Disconnected(device_id) => {
-                if let Some(removed_id) = devices.remove(&device_id) {
-                    info!("Device disconnected: {}", removed_id);
-
-                    tx.send_modify(|state| {
-                        state.devices = devices.values().cloned().collect();
-
-                        // If the disconnected device was the connected one, clear it
-                        if state.connected.as_ref() == Some(&removed_id) {
-                            info!("Connected device was unplugged, clearing connection");
-                            state.connected = None;
-                        }
-                    });
+        // Poll for serial ports
+        if let Ok(ports) = serialport::available_ports() {
+            for port in ports {
+                // Filter for ESP32 devices (VID: 0x303a, PID: 0x1001)
+                if let serialport::SerialPortType::UsbPort(usb_info) = &port.port_type
+                    && usb_info.vid == 0x303a
+                    && usb_info.pid == 0x1001
+                {
+                    current_devices.insert(port.port_name.clone());
                 }
             }
         }
+
+        // Detect changes
+        let added: Vec<_> = current_devices
+            .difference(&previous_devices)
+            .cloned()
+            .collect();
+        let removed: Vec<_> = previous_devices
+            .difference(&current_devices)
+            .cloned()
+            .collect();
+
+        if !added.is_empty() || !removed.is_empty() {
+            for port in &added {
+                info!("Device connected: {}", port);
+            }
+            for port in &removed {
+                info!("Device disconnected: {}", port);
+            }
+
+            tx.send_modify(|state| {
+                state.devices = current_devices.iter().cloned().collect();
+
+                // If the disconnected device was the connected one, clear it
+                if let Some(ref connected_id) = state.connected
+                    && !current_devices.contains(connected_id)
+                {
+                    info!("Connected device was unplugged, clearing connection");
+                    state.connected = None;
+                }
+            });
+        }
+
+        previous_devices = current_devices;
+
+        sleep(Duration::from_millis(1000)).await;
     }
 }
