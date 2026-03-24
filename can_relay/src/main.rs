@@ -1,7 +1,4 @@
-use esp_idf_svc::hal::{
-    can::{self, AsyncCanDriver},
-    peripherals::Peripherals,
-};
+use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 
 use crate::can_interface::can_task;
