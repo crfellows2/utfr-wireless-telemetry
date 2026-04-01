@@ -145,6 +145,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bstr",
+ "chrono",
  "ds323x",
  "edge-executor",
  "embassy-futures",
@@ -154,6 +155,7 @@ dependencies = [
  "enumset",
  "esp-idf-svc",
  "esp32-nimble",
+ "heapless 0.8.0",
  "log",
 ]
 

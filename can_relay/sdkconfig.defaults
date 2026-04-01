@@ -24,3 +24,6 @@ CONFIG_BT_NIMBLE_NVS_PERSIST=y # save ios bond info in nvs to allow ios device t
 CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
 CONFIG_BT_NIMBLE_LOG_LEVEL=2
 CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=512
+
+# So we can have full timestamps in log file names
+CONFIG_FATFS_LFN_STACK=y

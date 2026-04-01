@@ -3,8 +3,13 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 
 use edge_executor::LocalExecutor;
+use std::sync::mpsc;
+use std::sync::Mutex;
 
-use crate::can_interface::can_task;
+use crate::sd_logger::test_sd_card;
+
+// SD logging channel (uses std::sync::mpsc for blocking thread)
+pub static SD_TX: Mutex<Option<mpsc::SyncSender<can_interface::CanFrame>>> = Mutex::new(None);
 
 mod ble;
 mod can_interface;
@@ -28,7 +33,6 @@ fn main() {
     let _can2_tx = pins.gpio19;
     let _can2_rx = pins.gpio18;
     let can_peripheral = peripherals.can;
-    let can_task = can_task(can_peripheral, can1_tx, can1_rx);
 
     // SD card SPI
     let sd_miso = pins.gpio21;
@@ -59,12 +63,23 @@ fn main() {
         .sync_system_time()
         .expect("Failed to sync system time");
 
-    // Test SD card
-    sd_logger::test_sd_card(peripherals.spi2, sd_sclk, sd_mosi, sd_miso, sd_cs);
+    // Create SD logger channel and thread
+    let (sd_tx, sd_rx) = mpsc::sync_channel(256);
+    *SD_TX.lock().unwrap() = Some(sd_tx);
+
+    sd_logger::start_sd_logger_thread(sd_rx, peripherals.spi2, sd_sclk, sd_mosi, sd_miso, sd_cs)
+        .expect("Failed to start SD logger thread");
 
     let local_ex: LocalExecutor = Default::default();
 
+    // Spawn both BLE and CAN tasks
     let ble_task = local_ex.spawn(async { ble::ble_task().await });
-    let res = block_on(local_ex.run(ble_task));
-    res.unwrap();
+    let can_task_handle = local_ex.spawn(async {
+        can_interface::can_task(can_peripheral, can1_tx, can1_rx, 0).await;
+        Ok::<(), anyhow::Error>(())
+    });
+
+    // Run executor with both tasks
+    use embassy_futures::select::select;
+    block_on(local_ex.run(async { select(ble_task, can_task_handle).await }));
 }

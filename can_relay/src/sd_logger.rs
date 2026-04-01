@@ -1,5 +1,10 @@
 use core::fmt;
 
+use esp_idf_svc::fs::fatfs::Fatfs;
+use esp_idf_svc::hal::sd::{spi::SdSpiHostDriver, SdCardDriver};
+use esp_idf_svc::hal::spi::SpiDriver;
+use esp_idf_svc::io::vfs::MountedFatfs;
+
 /// Maximum size of a candump-formatted CAN frame in bytes
 /// Measured worst case: 61 bytes. Using 128 for safety margin.
 pub const CANDUMP_MAX_FRAME_SIZE: usize = 128;
@@ -72,6 +77,7 @@ pub fn format_candump(
     writer.len()
 }
 
+#[allow(unused)]
 pub fn test_sd_card(
     spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins,
     sclk: impl esp_idf_svc::hal::gpio::OutputPin,
@@ -79,54 +85,16 @@ pub fn test_sd_card(
     miso: impl esp_idf_svc::hal::gpio::InputPin,
     cs: impl esp_idf_svc::hal::gpio::OutputPin,
 ) {
-    use std::fs::File;
-    use std::io::{Read, Write};
-
     use esp_idf_svc::fs::fatfs::Fatfs;
     use esp_idf_svc::hal::gpio::AnyIOPin;
     use esp_idf_svc::hal::sd::{spi::SdSpiHostDriver, SdCardConfiguration, SdCardDriver};
     use esp_idf_svc::hal::spi::{config::DriverConfig, Dma, SpiDriver};
     use esp_idf_svc::io::vfs::MountedFatfs;
-
     use log::info;
+    use std::fs::File;
+    use std::io::Read;
 
     info!("Starting SD card test...");
-
-    // Test candump formatting
-    {
-        let mut buf = [0u8; 128];
-        let len = format_candump(
-            &mut buf,
-            1678901234,
-            567890,
-            0,
-            0x123,
-            &[0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88],
-        );
-        let formatted = core::str::from_utf8(&buf[..len]).unwrap();
-        info!("Candump format test: {}", formatted.trim());
-        info!("Formatted length: {} bytes", len);
-    }
-
-    // Determine actual maximum candump frame size
-    {
-        let mut buf = [0u8; 256];
-
-        // Worst case: max timestamp, extended ID, max data
-        let max_size = format_candump(
-            &mut buf,
-            u64::MAX,   // Max timestamp seconds (20 digits)
-            999999,     // Max microseconds (6 digits)
-            9,          // Max single-digit bus
-            0x1FFFFFFF, // Max extended CAN ID (29-bit)
-            &[0xFF; 8], // Max 8 bytes data
-        );
-
-        let formatted = core::str::from_utf8(&buf[..max_size]).unwrap();
-        info!("Maximum candump frame size test:");
-        info!("  Formatted: {}", formatted.trim());
-        info!("  Size: {} bytes", max_size);
-    }
 
     let spi_driver = SpiDriver::new(
         spi_peripheral,
@@ -137,8 +105,6 @@ pub fn test_sd_card(
     )
     .expect("Failed to create SPI driver");
 
-    info!("SPI driver created");
-
     let sd_card_driver = SdCardDriver::new_spi(
         SdSpiHostDriver::new(
             spi_driver,
@@ -146,16 +112,13 @@ pub fn test_sd_card(
             AnyIOPin::none(),
             AnyIOPin::none(),
             AnyIOPin::none(),
-            None, // For ESP-IDF v5.2+
+            None,
         )
         .expect("Failed to create SD SPI host driver"),
         &SdCardConfiguration::new(),
     )
     .expect("Failed to create SD card driver");
 
-    info!("SD card driver created");
-
-    // Keep it around or else it will be dropped and unmounted
     let _mounted_fatfs = MountedFatfs::mount(
         Fatfs::new_sdcard(0, sd_card_driver).expect("Failed to create FATFS"),
         "/sd",
@@ -232,5 +195,176 @@ pub fn test_sd_card(
 
         assert_eq!(read_content.as_bytes(), test_content);
         info!("SD card test PASSED!");
+    }
+}
+
+use chrono::{Datelike, Timelike};
+use log::info;
+use std::fs::File;
+use std::io::Write;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
+
+const BUFFER_SIZE: usize = 4096;
+const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
+
+pub fn start_sd_logger_thread(
+    rx: mpsc::Receiver<crate::can_interface::CanFrame>,
+    spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins + Send + 'static,
+    sclk: impl esp_idf_svc::hal::gpio::OutputPin + Send + 'static,
+    mosi: impl esp_idf_svc::hal::gpio::OutputPin + Send + 'static,
+    miso: impl esp_idf_svc::hal::gpio::InputPin + Send + 'static,
+    cs: impl esp_idf_svc::hal::gpio::OutputPin + Send + 'static,
+) -> std::io::Result<()> {
+    std::thread::Builder::new()
+        .name("sd_logger".to_string())
+        .stack_size(16384)
+        .spawn(move || sd_logger_thread_main(rx, spi_peripheral, sclk, mosi, miso, cs))?;
+
+    Ok(())
+}
+
+fn get_log_filename() -> String {
+    let (sec, _usec) = crate::rtc::get_system_timestamp_us();
+    let dt = chrono::NaiveDateTime::from_timestamp_opt(sec, 0)
+        .unwrap_or_else(|| chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap());
+    format!(
+        "/sd/can_{:04}{:02}{:02}_{:02}{:02}{:02}.txt",
+        dt.year(),
+        dt.month(),
+        dt.day(),
+        dt.hour(),
+        dt.minute(),
+        dt.second()
+    )
+}
+
+fn sd_logger_thread_main(
+    rx: mpsc::Receiver<crate::can_interface::CanFrame>,
+    spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins,
+    sclk: impl esp_idf_svc::hal::gpio::OutputPin,
+    mosi: impl esp_idf_svc::hal::gpio::OutputPin,
+    miso: impl esp_idf_svc::hal::gpio::InputPin,
+    cs: impl esp_idf_svc::hal::gpio::OutputPin,
+) {
+    use esp_idf_svc::fs::fatfs::Fatfs;
+    use esp_idf_svc::hal::gpio::AnyIOPin;
+    use esp_idf_svc::hal::sd::{spi::SdSpiHostDriver, SdCardConfiguration, SdCardDriver};
+    use esp_idf_svc::hal::spi::{config::DriverConfig, Dma, SpiDriver};
+    use esp_idf_svc::io::vfs::MountedFatfs;
+
+    log::info!("SD logger thread: mounting SD card");
+
+    let spi_driver = SpiDriver::new(
+        spi_peripheral,
+        sclk,
+        mosi,
+        Some(miso),
+        &DriverConfig::default().dma(Dma::Auto(4096)),
+    )
+    .expect("Failed to create SPI driver");
+
+    let sd_card_driver = SdCardDriver::new_spi(
+        SdSpiHostDriver::new(
+            spi_driver,
+            Some(cs),
+            AnyIOPin::none(),
+            AnyIOPin::none(),
+            AnyIOPin::none(),
+            None,
+        )
+        .expect("Failed to create SD SPI host driver"),
+        &SdCardConfiguration::new(),
+    )
+    .expect("Failed to create SD card driver");
+
+    let _mounted_fatfs = MountedFatfs::mount(
+        Fatfs::new_sdcard(0, sd_card_driver).expect("Failed to create FATFS"),
+        "/sd",
+        4,
+    )
+    .expect("Failed to mount SD card");
+
+    log::info!("SD card mounted at /sd");
+
+    match std::fs::read_dir("/sd") {
+        Ok(entries) => {
+            info!("SD card directory listing:");
+            for entry in entries {
+                match entry {
+                    Ok(e) => info!("  - {:?}", e.file_name()),
+                    Err(e) => info!("  Error reading entry: {:?}", e),
+                }
+            }
+        }
+        Err(e) => {
+            info!("Failed to read /sd directory: {:?}", e);
+        }
+    }
+
+    let test_content = b"SD card test successful!";
+
+    {
+        let mut file = File::create("/sd/test.txt").expect("Failed to create file");
+        file.write_all(test_content)
+            .expect("Failed to write to file");
+        info!("Test file written");
+    }
+
+    let filename = get_log_filename();
+    log::info!("Opening log file: {}", filename);
+
+    let mut file = File::create(&filename).expect("Failed to create log file");
+
+    let mut buffer: heapless::Vec<u8, BUFFER_SIZE> = heapless::Vec::new();
+    let mut last_flush = Instant::now();
+
+    loop {
+        match rx.recv_timeout(Duration::from_millis(100)) {
+            Ok(frame) => {
+                let mut line_buf = [0u8; CANDUMP_MAX_FRAME_SIZE];
+                let len = format_candump(
+                    &mut line_buf,
+                    frame.timestamp_sec,
+                    frame.timestamp_usec,
+                    frame.bus_id,
+                    frame.can_id,
+                    &frame.data[..frame.data_len],
+                );
+
+                if buffer.len() + len > buffer.capacity() {
+                    file.write_all(&buffer).expect("SD write failed");
+                    file.flush().expect("SD flush failed");
+                    buffer.clear();
+                    last_flush = Instant::now();
+                }
+
+                buffer.extend_from_slice(&line_buf[..len]).ok();
+
+                if last_flush.elapsed() >= FLUSH_INTERVAL {
+                    if !buffer.is_empty() {
+                        file.write_all(&buffer).expect("SD write failed");
+                        file.flush().expect("SD flush failed");
+                        buffer.clear();
+                    }
+                    last_flush = Instant::now();
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                if !buffer.is_empty() && last_flush.elapsed() >= FLUSH_INTERVAL {
+                    file.write_all(&buffer).expect("SD write failed");
+                    file.flush().expect("SD flush failed");
+                    buffer.clear();
+                    last_flush = Instant::now();
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                if !buffer.is_empty() {
+                    let _ = file.write_all(&buffer);
+                    let _ = file.flush();
+                }
+                break;
+            }
+        }
     }
 }

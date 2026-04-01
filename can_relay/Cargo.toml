@@ -31,6 +31,8 @@ ds323x = "0.7"
 anyhow = "1.0.102"
 edge-executor = "0.4.1"
 bstr = "1.12.1"
+chrono = { version = "0.4", default-features = false }
+heapless = "0.8"
 
 [build-dependencies]
 embuild = "0.33"

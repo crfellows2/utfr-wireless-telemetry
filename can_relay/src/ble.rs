@@ -1,6 +1,5 @@
 use embassy_time::{Duration, Ticker};
 use esp32_nimble::{uuid128, BLEAdvertisementData, BLEDevice, NimbleProperties};
-use std::format;
 
 pub async fn ble_task() -> anyhow::Result<()> {
     let ble_device = BLEDevice::take();
@@ -45,18 +44,10 @@ pub async fn ble_task() -> anyhow::Result<()> {
     )?;
     ble_advertising.lock().start()?;
 
-    server.ble_gatts_show_local();
+    crate::can_interface::TX_CHAR.signal(notifying_characteristic);
 
     let mut ticker = Ticker::every(Duration::from_millis(1000));
-    let mut counter = 0;
     loop {
-        notifying_characteristic
-            .lock()
-            .set_value(format!("Counter: {counter}").as_bytes())
-            .notify();
-
-        counter += 1;
-
         ticker.next().await;
     }
 }
