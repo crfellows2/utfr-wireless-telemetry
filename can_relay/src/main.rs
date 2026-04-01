@@ -1,8 +1,12 @@
+use edge_executor::block_on;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 
+use edge_executor::LocalExecutor;
+
 use crate::can_interface::can_task;
 
+mod ble;
 mod can_interface;
 mod rtc;
 mod sd_logger;
@@ -57,4 +61,10 @@ fn main() {
 
     // Test SD card
     sd_logger::test_sd_card(peripherals.spi2, sd_sclk, sd_mosi, sd_miso, sd_cs);
+
+    let local_ex: LocalExecutor = Default::default();
+
+    let ble_task = local_ex.spawn(async { ble::ble_task().await });
+    let res = block_on(local_ex.run(ble_task));
+    res.unwrap();
 }

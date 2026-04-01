@@ -1,5 +1,5 @@
 [package]
-name = "can_relay"
+name = "can_receiver"
 version = "0.1.0"
 authors = ["Clive Fellows <96612196+crfellows2@users.noreply.github.com>"]
 edition = "2021"
@@ -7,7 +7,7 @@ resolver = "2"
 rust-version = "1.82"
 
 [[bin]]
-name = "can_relay"
+name = "can_receiver"
 harness = false # do not use the built-in cargo test harness -> resolve rust-analyzer errors
 
 [profile.release]
@@ -22,15 +22,10 @@ log = "0.4"
 esp-idf-svc = { version = "0.52.1", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
 # Remove `generic-queue-8` if you plan to use `embassy-time` WITH `embassy-executor`
 embassy-time = { version = "0.5", features = ["generic-queue-8"] }
-
 esp32-nimble = "0.12.0"
-enumset = "1.1.10"
-embassy-futures = "0.1.2"
-embassy-sync = "0.8"
-ds323x = "0.7"
+bstr = "1.12.1"
 anyhow = "1.0.102"
 edge-executor = "0.4.1"
-bstr = "1.12.1"
 
 [build-dependencies]
 embuild = "0.33"
