@@ -28,10 +28,10 @@ fn main() {
     let pins = peripherals.pins;
 
     // can transceivers
-    let can1_tx = pins.gpio9;
+    let can1_tx = pins.gpio18;
     let can1_rx = pins.gpio14;
-    let _can2_tx = pins.gpio19;
-    let _can2_rx = pins.gpio18;
+    let _can2_tx = pins.gpio20;
+    let _can2_rx = pins.gpio19;
     let can_peripheral = peripherals.can;
 
     // SD card SPI

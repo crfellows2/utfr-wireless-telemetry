@@ -6,7 +6,7 @@ use esp_idf_svc::hal::{
     can::{self, AsyncCanDriver, Frame, CAN},
     gpio::{InputPin, OutputPin},
 };
-use log::{debug, info};
+use log::info;
 
 /// Timestamped CAN frame
 #[derive(Debug, Clone)]
@@ -86,6 +86,7 @@ pub async fn can_task(
             async {
                 match can.receive().await {
                     Ok(frame) => {
+                        // info!("CAN RX: {frame}");
                         // Timestamp frame
                         let can_frame = CanFrame::from_hardware_frame(&frame, bus_id);
 
@@ -113,12 +114,13 @@ pub async fn can_task(
             },
             async {
                 match can.read_alerts().await {
-                    Ok(alerts) => debug!("Alerts: {alerts:?}"),
-                    Err(e) => debug!("Alerts Err: {e:?}"),
+                    Ok(alerts) => info!("Alerts: {alerts:?}"),
+                    Err(e) => info!("Alerts Err: {e:?}"),
                 }
             },
             async {
                 let new_char = TX_CHAR.wait().await;
+                info!("CAN task got BLE TX Char");
                 tx_char = Some(new_char);
             },
         )

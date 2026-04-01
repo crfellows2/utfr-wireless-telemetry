@@ -200,8 +200,8 @@ pub fn test_sd_card(
 
 use chrono::{Datelike, Timelike};
 use log::info;
-use std::fs::File;
-use std::io::Write;
+use std::fs::{read_to_string, File};
+use std::io::{Read, Write};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -334,7 +334,7 @@ fn sd_logger_thread_main(
 
                 if buffer.len() + len > buffer.capacity() {
                     file.write_all(&buffer).expect("SD write failed");
-                    file.flush().expect("SD flush failed");
+                    file.sync_all().expect("SD sync failed");
                     buffer.clear();
                     last_flush = Instant::now();
                 }
@@ -343,25 +343,29 @@ fn sd_logger_thread_main(
 
                 if last_flush.elapsed() >= FLUSH_INTERVAL {
                     if !buffer.is_empty() {
+                        let bytes_len = buffer.len();
                         file.write_all(&buffer).expect("SD write failed");
-                        file.flush().expect("SD flush failed");
+                        file.sync_all().expect("SD sync failed");
                         buffer.clear();
+                        info!("{bytes_len} Bytes synced to SD");
                     }
                     last_flush = Instant::now();
                 }
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if !buffer.is_empty() && last_flush.elapsed() >= FLUSH_INTERVAL {
+                    let bytes_len = buffer.len();
                     file.write_all(&buffer).expect("SD write failed");
-                    file.flush().expect("SD flush failed");
+                    file.sync_all().expect("SD sync failed");
                     buffer.clear();
                     last_flush = Instant::now();
+                    info!("{bytes_len} Bytes synced to SD");
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 if !buffer.is_empty() {
                     let _ = file.write_all(&buffer);
-                    let _ = file.flush();
+                    let _ = file.sync_all();
                 }
                 break;
             }
