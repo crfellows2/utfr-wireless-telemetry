@@ -6,8 +6,6 @@ use edge_executor::LocalExecutor;
 use std::sync::mpsc;
 use std::sync::Mutex;
 
-use crate::sd_logger::test_sd_card;
-
 // SD logging channel (uses std::sync::mpsc for blocking thread)
 pub static SD_TX: Mutex<Option<mpsc::SyncSender<can_interface::CanFrame>>> = Mutex::new(None);
 

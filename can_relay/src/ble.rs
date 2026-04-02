@@ -1,4 +1,3 @@
-use embassy_time::{Duration, Ticker};
 use esp32_nimble::{uuid128, BLEAdvertisementData, BLEDevice, NimbleProperties};
 
 pub async fn ble_task() -> anyhow::Result<()> {
@@ -20,12 +19,17 @@ pub async fn ble_task() -> anyhow::Result<()> {
 
     let service = server.create_service(uuid128!("fafafafa-fafa-fafa-fafa-fafafafafafa"));
 
-    // A characteristic that notifies every second.
-    let notifying_characteristic = service.lock().create_characteristic(
+    // Telemetry data characteristic (CAN frames)
+    let telemetry_characteristic = service.lock().create_characteristic(
         uuid128!("a3c87500-8ed3-4bdf-8a39-a01bebede295"),
         NimbleProperties::READ | NimbleProperties::NOTIFY,
     );
-    notifying_characteristic.lock().set_value(b"Initial value.");
+
+    // Status characteristic (SD card usage, etc.)
+    let status_characteristic = service.lock().create_characteristic(
+        uuid128!("b4d98600-8ed3-4bdf-8a39-a01bebede295"),
+        NimbleProperties::READ | NimbleProperties::NOTIFY,
+    );
 
     // A writable characteristic.
     let writable_characteristic = service.lock().create_characteristic(
@@ -44,10 +48,17 @@ pub async fn ble_task() -> anyhow::Result<()> {
     )?;
     ble_advertising.lock().start()?;
 
-    crate::can_interface::TX_CHAR.signal(notifying_characteristic);
+    crate::can_interface::TX_CHAR.signal(telemetry_characteristic);
 
-    let mut ticker = Ticker::every(Duration::from_millis(1000));
+    // Listen for SD status updates and notify
     loop {
-        ticker.next().await;
+        let sd_status = crate::sd_logger::SD_STATUS.wait().await;
+        let data = sd_status.to_ble_bytes();
+        status_characteristic.lock().set_value(&data).notify();
+        ::log::info!(
+            "SD status: {}/{} KB used",
+            sd_status.used_kb,
+            sd_status.total_kb
+        );
     }
 }

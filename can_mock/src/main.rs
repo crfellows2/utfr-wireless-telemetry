@@ -22,14 +22,14 @@ fn main() {
     let peripherals = Peripherals::take().unwrap();
     let pins = peripherals.pins;
 
-    // let can1_tx = pins.gpio9;
-    // let can1_rx = pins.gpio14;
-    // let _can2_tx = pins.gpio19;
-    // let _can2_rx = pins.gpio18;
-    // let can_peripheral = peripherals.can;
-    // block_on(can_task(can_peripheral, can1_tx, can1_rx));
+    let can1_tx = pins.gpio18;
+    let can1_rx = pins.gpio14;
+    let _can2_tx = pins.gpio20;
+    let _can2_rx = pins.gpio19;
+    let can_peripheral = peripherals.can;
+    block_on(can_task(can_peripheral, can1_tx, can1_rx));
 
-    block_on(can_task(peripherals.can, pins.gpio18, pins.gpio19));
+    // block_on(can_task(peripherals.can, pins.gpio18, pins.gpio19));
 }
 
 pub async fn can_task(can_peripheral: CAN<'_>, tx_pin: impl OutputPin, rx_pin: impl InputPin) {

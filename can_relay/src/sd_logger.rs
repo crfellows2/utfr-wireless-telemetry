@@ -1,9 +1,26 @@
 use core::fmt;
 
-use esp_idf_svc::fs::fatfs::Fatfs;
-use esp_idf_svc::hal::sd::{spi::SdSpiHostDriver, SdCardDriver};
-use esp_idf_svc::hal::spi::SpiDriver;
-use esp_idf_svc::io::vfs::MountedFatfs;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+
+/// SD card status for BLE reporting
+#[derive(Debug, Clone, Copy)]
+pub struct SdStatus {
+    pub used_kb: u32,
+    pub total_kb: u32,
+}
+
+impl SdStatus {
+    /// Binary format: [used_kb:4][total_kb:4] = 8 bytes
+    pub fn to_ble_bytes(&self) -> [u8; 8] {
+        let mut buf = [0u8; 8];
+        buf[0..4].copy_from_slice(&self.used_kb.to_le_bytes());
+        buf[4..8].copy_from_slice(&self.total_kb.to_le_bytes());
+        buf
+    }
+}
+
+/// Signal for SD status updates (signaled after each flush)
+pub static SD_STATUS: Signal<CriticalSectionRawMutex, SdStatus> = Signal::new();
 
 /// Maximum size of a candump-formatted CAN frame in bytes
 /// Measured worst case: 61 bytes. Using 128 for safety margin.
@@ -200,13 +217,49 @@ pub fn test_sd_card(
 
 use chrono::{Datelike, Timelike};
 use log::info;
-use std::fs::{read_to_string, File};
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::Write;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 const BUFFER_SIZE: usize = 4096;
 const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
+
+/// Get SD card filesystem stats using FatFs f_getfree
+fn get_sd_stats() -> Option<SdStatus> {
+    use esp_idf_svc::sys::{f_getfree, FATFS, FRESULT_FR_OK};
+
+    let path = std::ffi::CString::new("/sd").ok()?;
+    let mut free_clusters: u32 = 0;
+    let mut fs_ptr: *mut FATFS = std::ptr::null_mut();
+
+    let res = unsafe { f_getfree(path.as_ptr(), &mut free_clusters, &mut fs_ptr) };
+
+    if res != FRESULT_FR_OK || fs_ptr.is_null() {
+        return None;
+    }
+
+    let fs = unsafe { &*fs_ptr };
+
+    // Total sectors = (total FAT entries - 2) * cluster size
+    // Free sectors = free clusters * cluster size
+    let total_sectors = (fs.n_fatent - 2) as u64 * fs.csize as u64;
+    let free_sectors = free_clusters as u64 * fs.csize as u64;
+    let sector_size = fs.ssize as u64;
+
+    let total_kb = (total_sectors * sector_size / 1024) as u32;
+    let free_kb = (free_sectors * sector_size / 1024) as u32;
+    let used_kb = total_kb.saturating_sub(free_kb);
+
+    Some(SdStatus { used_kb, total_kb })
+}
+
+/// Signal SD status update after a flush
+fn signal_sd_status() {
+    if let Some(status) = get_sd_stats() {
+        SD_STATUS.signal(status);
+    }
+}
 
 pub fn start_sd_logger_thread(
     rx: mpsc::Receiver<crate::can_interface::CanFrame>,
@@ -337,6 +390,7 @@ fn sd_logger_thread_main(
                     file.sync_all().expect("SD sync failed");
                     buffer.clear();
                     last_flush = Instant::now();
+                    signal_sd_status();
                 }
 
                 buffer.extend_from_slice(&line_buf[..len]).ok();
@@ -348,6 +402,7 @@ fn sd_logger_thread_main(
                         file.sync_all().expect("SD sync failed");
                         buffer.clear();
                         info!("{bytes_len} Bytes synced to SD");
+                        signal_sd_status();
                     }
                     last_flush = Instant::now();
                 }
@@ -360,12 +415,14 @@ fn sd_logger_thread_main(
                     buffer.clear();
                     last_flush = Instant::now();
                     info!("{bytes_len} Bytes synced to SD");
+                    signal_sd_status();
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 if !buffer.is_empty() {
                     let _ = file.write_all(&buffer);
                     let _ = file.sync_all();
+                    signal_sd_status();
                 }
                 break;
             }
