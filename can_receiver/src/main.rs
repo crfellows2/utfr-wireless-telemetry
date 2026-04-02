@@ -60,22 +60,18 @@ fn main() -> anyhow::Result<()> {
                         let data_len = data[17] as usize;
                         let can_data = &data[18..18 + data_len.min(8)];
 
-                        // Format data bytes as hex
-                        let mut hex_str = [0u8; 24]; // max 8 bytes * 2 chars + spaces
-                        let mut hex_pos = 0;
+                        // Format data bytes as hex (no spaces for compact output)
+                        let mut hex_str = [0u8; 16]; // max 8 bytes * 2 chars
                         for (i, byte) in can_data.iter().enumerate() {
-                            if i > 0 {
-                                hex_str[hex_pos] = b' ';
-                                hex_pos += 1;
-                            }
-                            hex_str[hex_pos] = b"0123456789ABCDEF"[(byte >> 4) as usize];
-                            hex_str[hex_pos + 1] = b"0123456789ABCDEF"[(byte & 0xF) as usize];
-                            hex_pos += 2;
+                            hex_str[i * 2] = b"0123456789ABCDEF"[(byte >> 4) as usize];
+                            hex_str[i * 2 + 1] = b"0123456789ABCDEF"[(byte & 0xF) as usize];
                         }
-                        let hex = core::str::from_utf8(&hex_str[..hex_pos]).unwrap_or("?");
+                        let hex = core::str::from_utf8(&hex_str[..data_len * 2]).unwrap_or("?");
 
-                        ::log::info!(
-                            "CAN{} {:03X} [{}] {} @ {}.{:06}",
+                        // Output with $ prefix for can_bridge parsing
+                        // Format: $CAN<bus> <id_hex> <len> <data_hex> <timestamp>
+                        println!(
+                            "$CAN{} {:03X} {} {} {}.{:06}",
                             bus_id,
                             can_id,
                             data_len,
@@ -83,8 +79,6 @@ fn main() -> anyhow::Result<()> {
                             timestamp_sec,
                             timestamp_usec
                         );
-                    } else {
-                        ::log::info!("Telemetry: unexpected {} bytes", data.len());
                     }
                 })
                 .subscribe_notify(false)
@@ -105,21 +99,9 @@ fn main() -> anyhow::Result<()> {
                     if data.len() == 8 {
                         let used_kb = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
                         let total_kb = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
-                        let used_mb = used_kb / 1024;
-                        let total_mb = total_kb / 1024;
-                        let percent = if total_kb > 0 {
-                            (used_kb as f32 / total_kb as f32) * 100.0
-                        } else {
-                            0.0
-                        };
-                        ::log::info!(
-                            "SD Card: {} / {} MB ({:.1}% used)",
-                            used_mb,
-                            total_mb,
-                            percent
-                        );
-                    } else {
-                        ::log::info!("Status: {} bytes", data.len());
+                        // Output with $ prefix for can_bridge parsing
+                        // Format: $SD <used_kb> <total_kb>
+                        println!("$SD {} {}", used_kb, total_kb);
                     }
                 })
                 .subscribe_notify(false)

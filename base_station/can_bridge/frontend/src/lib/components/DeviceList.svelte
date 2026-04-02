@@ -8,9 +8,10 @@
 	}
 
 	interface StorageInfo {
-		used_gb: number;
-		total_gb: number;
-		write_speed_kbps?: number;
+		used_kb: number;
+		total_kb: number;
+		used_mb: number;
+		total_mb: number;
 	}
 
 	let state: DeviceState = $state({ devices: [], connected: null });
@@ -42,8 +43,8 @@
 	}
 
 	function getStoragePercentage(): number {
-		if (!storage) return 0;
-		return Math.round((storage.used_gb / storage.total_gb) * 100);
+		if (!storage || storage.total_kb === 0) return 0;
+		return Math.round((storage.used_kb / storage.total_kb) * 100);
 	}
 
 	function getStorageColor(): string {
@@ -121,14 +122,16 @@
 				></div>
 			</div>
 			<div class="storage-info">
-				<span>{storage.used_gb.toFixed(1)} / {storage.total_gb.toFixed(1)} GB</span>
+				<span>
+					{#if storage.used_mb < 1024}
+						{storage.used_mb} MB
+					{:else}
+						{(storage.used_mb / 1024).toFixed(1)} GB
+					{/if}
+					/ {(storage.total_mb / 1024).toFixed(1)} GB
+				</span>
 				<span>{getStoragePercentage()}% used</span>
 			</div>
-			{#if storage.write_speed_kbps !== undefined}
-				<div class="write-speed">
-					Write: {storage.write_speed_kbps.toFixed(1)} KB/s
-				</div>
-			{/if}
 		</div>
 	{/if}
 </div>

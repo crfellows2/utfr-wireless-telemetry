@@ -13,7 +13,8 @@ use axum::{
 use clap::Parser;
 use futures::stream::{self, Stream};
 use serde::Serialize;
-use tokio::{sync::watch, time::sleep};
+use tokio::sync::{mpsc, watch};
+use tokio::time::sleep;
 use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -29,6 +30,7 @@ struct DeviceState {
 
 struct AppState {
     device_tx: watch::Sender<DeviceState>,
+    telemetry_tx: mpsc::Sender<mqtt::TelemetryMessage>,
 }
 
 #[derive(Parser, Debug)]
@@ -65,12 +67,17 @@ async fn main() {
         devices: Vec::new(),
         connected: None,
     });
+
+    // Create channel for telemetry data from serial to MQTT
+    let (telemetry_tx, telemetry_rx) = mqtt::create_channel();
+
     let state = Arc::new(AppState {
         device_tx: device_tx.clone(),
+        telemetry_tx,
     });
 
     tokio::spawn(ls_usb(device_tx));
-    tokio::spawn(mqtt::mqtt_publisher(args.broker.clone()));
+    tokio::spawn(mqtt::mqtt_publisher(args.broker.clone(), telemetry_rx));
 
     // Set up Axum web server
     let app = Router::new()
@@ -119,11 +126,12 @@ async fn connect_device(
         .timeout(Duration::from_secs(10))
         .open()
     {
-        Ok(mut port) => {
+        Ok(port) => {
             info!("Serial port opened: {}", id);
 
-            // Spawn task to read logs
+            // Spawn task to read and parse serial data
             let port_name = id.clone();
+            let telemetry_tx = state.telemetry_tx.clone();
             tokio::task::spawn_blocking(move || {
                 let mut buf = String::new();
                 let mut reader = std::io::BufReader::new(port);
@@ -132,25 +140,23 @@ async fn connect_device(
                     buf.clear();
                     match reader.read_line(&mut buf) {
                         Ok(0) => {
-                            // EOF
-                            info!("[{}] EOF reached", port_name);
+                            info!("[{}] Device disconnected", port_name);
                             break;
                         }
                         Ok(_) => {
-                            // Got a line, print it (trim trailing newline)
-                            info!("[{}] {}", port_name, buf.trim_end());
+                            if let Some(msg) = mqtt::parse_line(buf.trim_end()) {
+                                if telemetry_tx.blocking_send(msg).is_err() {
+                                    break;
+                                }
+                            }
                         }
-                        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
-                            // Timeout is normal, just continue
-                            continue;
-                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => continue,
                         Err(e) => {
                             info!("[{}] Read error: {:?}", port_name, e);
                             break;
                         }
                     }
                 }
-                info!("[{}] Reader task ended", port_name);
             });
 
             state.device_tx.send_modify(|device_state| {
