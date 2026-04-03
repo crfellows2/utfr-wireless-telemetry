@@ -54,7 +54,8 @@ fn main() -> anyhow::Result<()> {
                         let timestamp_sec = u64::from_le_bytes([
                             data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
                         ]);
-                        let timestamp_usec = u32::from_le_bytes([data[8], data[9], data[10], data[11]]);
+                        let timestamp_usec =
+                            u32::from_le_bytes([data[8], data[9], data[10], data[11]]);
                         let bus_id = data[12];
                         let can_id = u32::from_le_bytes([data[13], data[14], data[15], data[16]]);
                         let data_len = data[17] as usize;
@@ -67,6 +68,20 @@ fn main() -> anyhow::Result<()> {
                             hex_str[i * 2 + 1] = b"0123456789ABCDEF"[(byte & 0xF) as usize];
                         }
                         let hex = core::str::from_utf8(&hex_str[..data_len * 2]).unwrap_or("?");
+
+                        if can_id == 0x100 {
+                            let speed = can_data[0] as f32 / 3.6;
+                            let mut hex_str = [0u8; 16]; // max 8 bytes * 2 chars
+                            for (i, byte) in speed.iter().enumerate() {
+                                hex_str[i * 2] = b"0123456789ABCDEF"[(byte >> 4) as usize];
+                                hex_str[i * 2 + 1] = b"0123456789ABCDEF"[(byte & 0xF) as usize];
+                            }
+                            let hex = core::str::from_utf8(&hex_str[..data_len * 2]).unwrap_or("?");
+                            println!(
+                                "$CAN{} {:03X} {} {} {}.{:06}",
+                                bus_id, can_id, data_len, hex, timestamp_sec, timestamp_usec
+                            );
+                        }
 
                         // Output with $ prefix for can_bridge parsing
                         // Format: $CAN<bus> <id_hex> <len> <data_hex> <timestamp>
