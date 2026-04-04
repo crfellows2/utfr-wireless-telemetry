@@ -1,0 +1,42 @@
+[package]
+name = "bmi270"
+version = "0.1.0"
+authors = ["Clive Fellows <96612196+crfellows2@users.noreply.github.com>"]
+edition = "2021"
+resolver = "2"
+rust-version = "1.77"
+
+[profile.release]
+opt-level = "s"
+
+[profile.dev]
+debug = true    # Symbols are nice and they don't increase the size on Flash
+opt-level = "z"
+
+[features]
+default = ["sync"]
+sync = []
+async = []
+
+experimental = ["esp-idf-svc/experimental"]
+
+[dependencies]
+log = "0.4"
+esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
+embedded-hal = "1.0.0"
+embedded-registers = "0.9.12"
+bondrewd = "0.1.14"
+defmt = "1.0.1"
+bytemuck = "1.22.0"
+embedded-hal-async = "1.0.0"
+maybe-async-cfg = "0.2.5"
+embedded-devices-derive = "0.9.12"
+
+esp-idf-hal = "0.45"
+futures = "0.3"
+embedded-svc = "0.28"
+
+nalgebra = "0.32"
+
+[build-dependencies]
+embuild = "0.33"

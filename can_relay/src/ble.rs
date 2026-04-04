@@ -1,4 +1,6 @@
+use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use esp32_nimble::{uuid128, BLEAdvertisementData, BLEDevice, NimbleProperties};
+use std::sync::Arc;
 
 pub async fn ble_task() -> anyhow::Result<()> {
     let ble_device = BLEDevice::take();
@@ -61,4 +63,13 @@ pub async fn ble_task() -> anyhow::Result<()> {
             sd_status.total_kb
         );
     }
+}
+
+pub static TX_CHAR: Mutex<
+    CriticalSectionRawMutex,
+    Option<Arc<esp32_nimble::utilities::mutex::Mutex<esp32_nimble::BLECharacteristic>>>,
+> = Mutex::new(None);
+
+pub fn notify(value: &[u8]) -> Result<(), ()> {
+    Ok(())
 }

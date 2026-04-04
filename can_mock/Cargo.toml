@@ -24,6 +24,8 @@ esp-idf-svc = { version = "0.52.1", features = ["critical-section", "embassy-tim
 embassy-time = { version = "0.5", features = ["generic-queue-8"] }
 enumset = "1.1.10"
 embassy-futures = "0.1.2"
+bmi270 = { path = "../bmi270", features = ["async"] }
+
 
 [build-dependencies]
 embuild = "0.33"
