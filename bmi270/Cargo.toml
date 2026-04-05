@@ -22,7 +22,7 @@ experimental = ["esp-idf-svc/experimental"]
 
 [dependencies]
 log = "0.4"
-esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
+esp-idf-svc = { version = "0.52.1", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
 embedded-hal = "1.0.0"
 embedded-registers = "0.9.12"
 bondrewd = "0.1.14"
@@ -32,7 +32,6 @@ embedded-hal-async = "1.0.0"
 maybe-async-cfg = "0.2.5"
 embedded-devices-derive = "0.9.12"
 
-esp-idf-hal = "0.45"
 futures = "0.3"
 embedded-svc = "0.28"
 
