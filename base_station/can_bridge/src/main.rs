@@ -19,8 +19,10 @@ use tower_http::services::ServeDir;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
+mod can_recv;
 mod config;
 mod mqtt;
+mod usb;
 
 #[derive(Clone, Serialize)]
 struct DeviceState {
@@ -48,14 +50,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .compact()
-        .init();
-
+    init_tracing().expect("Could not init tracing");
     dotenvy::dotenv().ok();
     let args = Args::parse();
 
@@ -90,6 +85,15 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     info!("Web server listening on http://0.0.0.0:8080");
     axum::serve(listener, app).await.unwrap();
+}
+
+fn init_tracing() -> Result<(), Box<dyn core::error::Error + Send + Sync + 'static>> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .compact()
+        .try_init()
 }
 
 async fn sse_devices(
