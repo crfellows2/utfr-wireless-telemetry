@@ -21,7 +21,7 @@ use esp_idf_svc::{
 };
 use log::{error, info, warn};
 
-use crate::{ble::BleCanLink, sd_logger};
+use crate::{ble::BleCanLink, pose_estimation, sd_logger};
 
 /// Timestamped CAN frame
 #[derive(Debug, Clone)]
@@ -101,6 +101,14 @@ pub async fn can_task<Can, const N: usize>(
                     // }
                 }
                 let log_frame = CanFrameForSd::from_hardware_frame(&frame, 0);
+
+                // Send to pose estimation only for IMU frames (0x100, 0x101)
+                match log_frame.can_id {
+                    0x100 => pose_estimation::ACCEL_SIGNAL.signal(log_frame.clone()),
+                    0x101 => pose_estimation::GYRO_SIGNAL.signal(log_frame.clone()),
+                    _ => {}
+                }
+
                 if sd_log_tx.try_send(log_frame).is_err() {
                     warn!("Failed to log can frame to channel");
                 }

@@ -6,13 +6,9 @@ use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 
 use edge_executor::LocalExecutor;
-use std::sync::mpsc;
-use std::sync::Mutex;
 
 use crate::can_interface::CanFrameForSd;
 
-// SD logging channel (uses std::sync::mpsc for blocking thread)
-pub static SD_TX: Mutex<Option<mpsc::SyncSender<can_interface::CanFrameForSd>>> = Mutex::new(None);
 static LOG_CHANNEL: Channel<CriticalSectionRawMutex, CanFrameForSd, 256> = Channel::new();
 static BLE_TX_ONESHOT: Signal<CriticalSectionRawMutex, ble::BleCanLink> = Signal::new();
 static CAN_WRITE_CHANNEL: Channel<CriticalSectionRawMutex, protocol::CanFrame, 256> =
@@ -20,6 +16,7 @@ static CAN_WRITE_CHANNEL: Channel<CriticalSectionRawMutex, protocol::CanFrame, 2
 
 mod ble;
 mod can_interface;
+mod pose_estimation;
 mod rtc;
 mod sd_logger;
 
@@ -79,6 +76,9 @@ fn main() {
         sd_cs,
     )
     .expect("Failed to start SD logger thread");
+
+    pose_estimation::start_pose_estimation_thread()
+        .expect("Failed to start pose estimation thread");
 
     let local_ex: LocalExecutor = Default::default();
 
