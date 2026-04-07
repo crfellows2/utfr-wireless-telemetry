@@ -87,9 +87,19 @@ fn main() {
 
     // Spawn both BLE and CAN tasks
     let ble_task = local_ex.spawn(async { ble::ble_task(&BLE_TX_ONESHOT, ble_can_write_tx).await });
+
     let can_task_handle = local_ex.spawn(async {
-        // can_interface::can_task(can_peripheral, can1_tx, can1_rx, 0).await;
-        crate::can_interface::can_task::<crate::can_interface::MockCan, _>(
+        #[cfg(feature = "mock-can")]
+        type CanImpl = crate::can_interface::MockCan;
+        #[cfg(not(feature = "mock-can"))]
+        type CanImpl = crate::can_interface::RealCan;
+
+        #[cfg(feature = "mock-can")]
+        log::warn!("Using MockCan - not connected to real CAN hardware");
+        #[cfg(not(feature = "mock-can"))]
+        log::info!("Starting CAN task with RealCan");
+
+        crate::can_interface::can_task::<CanImpl, _>(
             can_peripheral,
             can1_tx,
             can1_rx,

@@ -78,7 +78,10 @@ pub async fn can_task<Can, const N: usize>(
 ) where
     Can: CanInterface,
 {
+    info!("Starting CAN task...");
     let mut can = Can::start(can_peripheral, tx_pin, rx_pin).expect("Should be able to start CAN");
+    info!("CAN task started");
+
     let mut tx: Option<BleCanLink> = None;
 
     loop {

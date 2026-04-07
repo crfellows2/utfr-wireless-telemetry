@@ -39,5 +39,8 @@ heapless = "0.7"
 serde = { version = "1.0", default-features = false }
 futures = "0.3.32"
 
+[features]
+mock-can = []
+
 [build-dependencies]
 embuild = "0.33"

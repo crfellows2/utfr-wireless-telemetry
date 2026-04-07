@@ -373,6 +373,9 @@ fn sd_logger_thread_main<const N: usize>(
 
     let mut file = File::create(&filename).expect("Failed to create log file");
 
+    // Signal initial SD status
+    signal_sd_status();
+
     let mut buffer: heapless::Vec<u8, BUFFER_SIZE> = heapless::Vec::new();
     let mut last_flush = Instant::now();
 
@@ -410,10 +413,10 @@ fn sd_logger_thread_main<const N: usize>(
                     file.write_all(&buffer).expect("SD write failed");
                     file.sync_all().expect("SD sync failed");
                     buffer.clear();
-                    last_flush = Instant::now();
                     info!("{bytes_len} Bytes synced to SD");
                     signal_sd_status();
                 }
+                last_flush = Instant::now();
             }
         }
     }
