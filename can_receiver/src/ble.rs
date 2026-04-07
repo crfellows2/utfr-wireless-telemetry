@@ -6,7 +6,7 @@ use esp32_nimble::{
 };
 use esp_idf_svc::sys::ble_gap_set_data_len;
 use log::info;
-use protocol::{CanFrame, CanId, StandardId};
+use protocol::CanFrame;
 use std::sync::atomic::Ordering;
 
 use crate::telemetry::{format_frame, TELEMETRY_BYTES};
@@ -114,7 +114,12 @@ async fn subscribe_to_status(service: &mut BLERemoteService) -> anyhow::Result<(
     Ok(())
 }
 
-async fn run_connection(client: &mut BLEClient) -> anyhow::Result<()> {
+async fn run_connection(
+    client: &mut BLEClient,
+    command_rx: embassy_sync::channel::Receiver<'static, embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex, protocol::Command, 32>,
+) -> anyhow::Result<()> {
+    use embassy_futures::select::{select, Either};
+
     let service = client
         .get_service(uuid128!("fafafafa-fafa-fafa-fafa-fafafafafafa"))
         .await?;
@@ -122,54 +127,36 @@ async fn run_connection(client: &mut BLEClient) -> anyhow::Result<()> {
     let mut telemetry_char = subscribe_to_telemetry(&mut *service).await?;
     subscribe_to_status(&mut *service).await?;
 
-    let tx_char = service
-        .get_characteristic(uuid128!("3c9a3f00-8ed3-4bdf-8a39-a01bebede295"))
-        .await?;
-
     info!("Connected and subscribed, running main loop");
 
     let mut ticker = Ticker::every(Duration::from_millis(1000));
-    let mut counter = 0u32;
+
     loop {
-        tx_char
-            .write_value(format!("Counter: {counter}").as_bytes(), false)
-            .await?;
-
-        // Send test CAN frames
-        let mut can_write_buf = heapless::Vec::<u8, 512>::new();
-
-        // Create multiple test frames with counter
-        for i in 0u32..5 {
-            let mut payload = heapless::Vec::new();
-            payload.extend_from_slice(&counter.to_le_bytes()).ok();
-            payload.extend_from_slice(&i.to_le_bytes()).ok();
-
-            let frame = CanFrame {
-                id: CanId::Standard(StandardId::new(0x100 + i as u16).unwrap()),
-                payload,
-            };
-
-            let serialized = postcard::to_vec_cobs::<_, 100>(&frame).unwrap();
-            can_write_buf.extend_from_slice(&serialized).ok();
+        match select(command_rx.receive(), ticker.next()).await {
+            Either::First(protocol::Command::Write(frame)) => {
+                log::info!("Received Write command from channel, sending over BLE...");
+                // Serialize frame to COBS
+                let serialized = postcard::to_vec_cobs::<_, 100>(&frame)?;
+                telemetry_char.write_value(&serialized, false).await?;
+                log::info!("Write command sent successfully");
+            }
+            Either::First(_) => {
+                // Other command types - ignore
+            }
+            Either::Second(_) => {
+                // Ticker fired - report bitrate
+                let bytes = TELEMETRY_BYTES.swap(0, Ordering::Relaxed);
+                let kbps = (bytes as f64 * 8.0) / 1000.0;
+                println!("$RATE {:.2}", kbps);
+            }
         }
-
-        if !can_write_buf.is_empty() {
-            telemetry_char.write_value(&can_write_buf, false).await?;
-        }
-
-        counter = counter.wrapping_add(1);
-
-        let bytes = TELEMETRY_BYTES.swap(0, Ordering::Relaxed);
-        let kbps = (bytes as f64 * 8.0) / 1000.0;
-        println!("$RATE {:.2}", kbps);
-
-        ticker.next().await;
     }
 }
 
 pub async fn connect_and_run(
     ble_device: &BLEDevice,
     device: &BLEAdvertisedDevice,
+    command_rx: embassy_sync::channel::Receiver<'static, embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex, protocol::Command, 32>,
 ) -> anyhow::Result<()> {
     let mut client = ble_device.new_client();
     client.on_connect(|_client| unsafe {
@@ -184,7 +171,7 @@ pub async fn connect_and_run(
     info!("Connecting to {}...", device.addr());
     client.connect(&device.addr()).await?;
 
-    run_connection(&mut client).await
+    run_connection(&mut client, command_rx).await
 }
 
 pub fn reconnect_delay() -> Duration {
