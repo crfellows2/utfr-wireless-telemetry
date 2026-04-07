@@ -48,6 +48,16 @@ impl ExtendedId {
     }
 }
 
+// impl CanFrame {
+//     pub fn extended(id: u32, payload: &[u8]) -> Option<Self> {
+//         let id = ExtendedId::new(id)?;
+//         CanFrame {
+//             id,
+//             payload: payload.into(),
+//         }
+//     }
+// }
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum CanId {
@@ -102,7 +112,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn print_json() {
+    fn test_print_json() {
         let mut payload = heapless::Vec::new();
         payload
             .extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF])
@@ -118,13 +128,23 @@ mod tests {
                 mask: ExtendedId::EXACT_MASK,
             }),
             Command::Write(CanFrame {
-                id: CanId::Extended(ExtendedId::new(0x18DB33F1).unwrap()),
+                id: CanId::Standard(StandardId::new(0x55).unwrap()),
                 payload,
             }),
+            // Command::Write(CanFrame {
+            //     id: CanId::Extended(ExtendedId::new(0x18DB33F1).unwrap()),
+            //     payload: heapless::Vec::from_iter(std::iter::repeat_n(0xEFu8, 64)),
+            // }),
         ];
 
         for cmd in &commands {
             println!("{}", serde_json::to_string_pretty(cmd).unwrap());
+            let output = postcard::to_vec::<_, 100>(cmd).unwrap();
+            let postcard_str = output
+                .iter()
+                .map(|byte| format!("{:02x} ", byte))
+                .collect::<String>();
+            println!("[ {}] ({} bytes)", postcard_str, output.len());
         }
     }
 }

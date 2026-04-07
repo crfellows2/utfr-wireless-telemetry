@@ -1,5 +1,7 @@
 use core::fmt;
 
+use embassy_futures::select::{self, Either};
+use embassy_sync::channel::Receiver;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 
 /// SD card status for BLE reporting
@@ -216,11 +218,13 @@ pub fn test_sd_card(
 }
 
 use chrono::{Datelike, Timelike};
+use embassy_time::{Duration, Instant, Timer};
+use esp_idf_svc::hal::task::block_on;
 use log::info;
 use std::fs::File;
 use std::io::Write;
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
+
+use crate::can_interface::CanFrameForSd;
 
 const BUFFER_SIZE: usize = 4096;
 const FLUSH_INTERVAL: Duration = Duration::from_secs(1);
@@ -261,8 +265,8 @@ fn signal_sd_status() {
     }
 }
 
-pub fn start_sd_logger_thread(
-    rx: mpsc::Receiver<crate::can_interface::CanFrame>,
+pub fn start_sd_logger_thread<const N: usize>(
+    log_rx: Receiver<'static, CriticalSectionRawMutex, CanFrameForSd, N>,
     spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins + Send + 'static,
     sclk: impl esp_idf_svc::hal::gpio::OutputPin + Send + 'static,
     mosi: impl esp_idf_svc::hal::gpio::OutputPin + Send + 'static,
@@ -272,7 +276,7 @@ pub fn start_sd_logger_thread(
     std::thread::Builder::new()
         .name("sd_logger".to_string())
         .stack_size(16384)
-        .spawn(move || sd_logger_thread_main(rx, spi_peripheral, sclk, mosi, miso, cs))?;
+        .spawn(move || sd_logger_thread_main(log_rx, spi_peripheral, sclk, mosi, miso, cs))?;
 
     Ok(())
 }
@@ -292,8 +296,8 @@ fn get_log_filename() -> String {
     )
 }
 
-fn sd_logger_thread_main(
-    rx: mpsc::Receiver<crate::can_interface::CanFrame>,
+fn sd_logger_thread_main<const N: usize>(
+    log_rx: Receiver<'static, CriticalSectionRawMutex, CanFrameForSd, N>,
     spi_peripheral: impl esp_idf_svc::hal::spi::SpiAnyPins,
     sclk: impl esp_idf_svc::hal::gpio::OutputPin,
     mosi: impl esp_idf_svc::hal::gpio::OutputPin,
@@ -373,8 +377,12 @@ fn sd_logger_thread_main(
     let mut last_flush = Instant::now();
 
     loop {
-        match rx.recv_timeout(Duration::from_millis(100)) {
-            Ok(frame) => {
+        let remaining = FLUSH_INTERVAL
+            .checked_sub(last_flush.elapsed())
+            .unwrap_or(Duration::from_ticks(0));
+
+        match block_on(select::select(log_rx.receive(), Timer::after(remaining))) {
+            Either::First(frame) => {
                 let mut line_buf = [0u8; CANDUMP_MAX_FRAME_SIZE];
                 let len = format_candump(
                     &mut line_buf,
@@ -382,9 +390,10 @@ fn sd_logger_thread_main(
                     frame.timestamp_usec,
                     frame.bus_id,
                     frame.can_id,
-                    &frame.data[..frame.data_len],
+                    &frame.data[..frame.data_len as usize],
                 );
 
+                // Flush if this frame won't fit
                 if buffer.len() + len > buffer.capacity() {
                     file.write_all(&buffer).expect("SD write failed");
                     file.sync_all().expect("SD sync failed");
@@ -394,21 +403,9 @@ fn sd_logger_thread_main(
                 }
 
                 buffer.extend_from_slice(&line_buf[..len]).ok();
-
-                if last_flush.elapsed() >= FLUSH_INTERVAL {
-                    if !buffer.is_empty() {
-                        let bytes_len = buffer.len();
-                        file.write_all(&buffer).expect("SD write failed");
-                        file.sync_all().expect("SD sync failed");
-                        buffer.clear();
-                        info!("{bytes_len} Bytes synced to SD");
-                        signal_sd_status();
-                    }
-                    last_flush = Instant::now();
-                }
             }
-            Err(mpsc::RecvTimeoutError::Timeout) => {
-                if !buffer.is_empty() && last_flush.elapsed() >= FLUSH_INTERVAL {
+            Either::Second(()) => {
+                if !buffer.is_empty() {
                     let bytes_len = buffer.len();
                     file.write_all(&buffer).expect("SD write failed");
                     file.sync_all().expect("SD sync failed");
@@ -417,14 +414,6 @@ fn sd_logger_thread_main(
                     info!("{bytes_len} Bytes synced to SD");
                     signal_sd_status();
                 }
-            }
-            Err(mpsc::RecvTimeoutError::Disconnected) => {
-                if !buffer.is_empty() {
-                    let _ = file.write_all(&buffer);
-                    let _ = file.sync_all();
-                    signal_sd_status();
-                }
-                break;
             }
         }
     }

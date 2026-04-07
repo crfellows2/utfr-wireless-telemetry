@@ -1,4 +1,7 @@
 use edge_executor::block_on;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::channel::Channel;
+use embassy_sync::signal::Signal;
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs};
 
@@ -6,8 +9,14 @@ use edge_executor::LocalExecutor;
 use std::sync::mpsc;
 use std::sync::Mutex;
 
+use crate::can_interface::CanFrameForSd;
+
 // SD logging channel (uses std::sync::mpsc for blocking thread)
-pub static SD_TX: Mutex<Option<mpsc::SyncSender<can_interface::CanFrame>>> = Mutex::new(None);
+pub static SD_TX: Mutex<Option<mpsc::SyncSender<can_interface::CanFrameForSd>>> = Mutex::new(None);
+static LOG_CHANNEL: Channel<CriticalSectionRawMutex, CanFrameForSd, 256> = Channel::new();
+static BLE_TX_ONESHOT: Signal<CriticalSectionRawMutex, ble::BleCanLink> = Signal::new();
+static CAN_WRITE_CHANNEL: Channel<CriticalSectionRawMutex, protocol::CanFrame, 256> =
+    Channel::new();
 
 mod ble;
 mod can_interface;
@@ -61,19 +70,34 @@ fn main() {
         .sync_system_time()
         .expect("Failed to sync system time");
 
-    // Create SD logger channel and thread
-    let (sd_tx, sd_rx) = mpsc::sync_channel(256);
-    *SD_TX.lock().unwrap() = Some(sd_tx);
-
-    sd_logger::start_sd_logger_thread(sd_rx, peripherals.spi2, sd_sclk, sd_mosi, sd_miso, sd_cs)
-        .expect("Failed to start SD logger thread");
+    sd_logger::start_sd_logger_thread(
+        LOG_CHANNEL.receiver(),
+        peripherals.spi2,
+        sd_sclk,
+        sd_mosi,
+        sd_miso,
+        sd_cs,
+    )
+    .expect("Failed to start SD logger thread");
 
     let local_ex: LocalExecutor = Default::default();
 
+    let ble_can_write_tx = CAN_WRITE_CHANNEL.sender();
+    let ble_can_write_rx = CAN_WRITE_CHANNEL.receiver();
+
     // Spawn both BLE and CAN tasks
-    let ble_task = local_ex.spawn(async { ble::ble_task().await });
+    let ble_task = local_ex.spawn(async { ble::ble_task(&BLE_TX_ONESHOT, ble_can_write_tx).await });
     let can_task_handle = local_ex.spawn(async {
-        can_interface::can_task(can_peripheral, can1_tx, can1_rx, 0).await;
+        // can_interface::can_task(can_peripheral, can1_tx, can1_rx, 0).await;
+        crate::can_interface::can_task::<crate::can_interface::MockCan, _>(
+            can_peripheral,
+            can1_tx,
+            can1_rx,
+            LOG_CHANNEL.sender(),
+            &BLE_TX_ONESHOT,
+            ble_can_write_rx,
+        )
+        .await;
         Ok::<(), anyhow::Error>(())
     });
 

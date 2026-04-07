@@ -23,7 +23,10 @@ CONFIG_BT_NIMBLE_NVS_PERSIST=y # save ios bond info in nvs to allow ios device t
 # Reduce logs (specifically, "GATT procedure initiated: notify;")
 CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
 CONFIG_BT_NIMBLE_LOG_LEVEL=2
+
 CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=512
+CONFIG_BT_NIMBLE_MSYS_1_BLOCK_SIZE=520
+CONFIG_BT_NIMBLE_DATA_LEN_EXT=y
 
 # So we can have full timestamps in log file names
 CONFIG_FATFS_LFN_STACK=y

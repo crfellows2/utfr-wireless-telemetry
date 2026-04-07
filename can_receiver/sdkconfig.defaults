@@ -1,6 +1,3 @@
-# CRITICAL FUNCTIONALITY DO NOT REMOVE:
-CONFIG_LOG_COLORS=y
-
 # Rust often needs a bit of an extra main task stack size compared to C (the default is 3K)
 # You might have to increase this further if you allocate large stack variables in the main task
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
@@ -14,9 +11,22 @@ CONFIG_FREERTOS_IDLE_TASK_STACKSIZE=4096
 # `std::thread::Builder::new().stack_size(XXX)` for spawning
 CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=4096
 
+# CRITICAL FUNCTIONALITY DO NOT REMOVE:
+CONFIG_LOG_COLORS=y
 
-# esp32-nimble
 CONFIG_BT_ENABLED=y
 CONFIG_BT_BLE_ENABLED=y
 CONFIG_BT_BLUEDROID_ENABLED=n
 CONFIG_BT_NIMBLE_ENABLED=y
+#CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=7000 # 4096 by default
+CONFIG_BT_NIMBLE_NVS_PERSIST=y # save ios bond info in nvs to allow ios device to reconnect without bonding after reset
+# Reduce logs (specifically, "GATT procedure initiated: notify;")
+CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
+CONFIG_BT_NIMBLE_LOG_LEVEL=2
+
+CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=512
+CONFIG_BT_NIMBLE_MSYS_1_BLOCK_SIZE=520
+CONFIG_BT_NIMBLE_DATA_LEN_EXT=y
+
+# So we can have full timestamps in log file names
+CONFIG_FATFS_LFN_STACK=y

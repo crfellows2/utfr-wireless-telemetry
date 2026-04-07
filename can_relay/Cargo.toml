@@ -32,7 +32,12 @@ anyhow = "1.0.102"
 edge-executor = "0.4.1"
 bstr = "1.12.1"
 chrono = { version = "0.4", default-features = false }
-heapless = "0.8"
+
+protocol = { path = "../protocol" }
+postcard = "1.1.3"
+heapless = "0.7"
+serde = { version = "1.0", default-features = false }
+futures = "0.3.32"
 
 [build-dependencies]
 embuild = "0.33"
