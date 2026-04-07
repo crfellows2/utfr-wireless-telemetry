@@ -70,7 +70,7 @@ def main():
     try:
         for i in range(1, count + 1):
             # Generate CAN ID based on counter (0x100 + i)
-            can_id = 0x100 + i
+            can_id = 0x102
 
             # Payload: counter as 4 bytes little-endian + index as 4 bytes little-endian
             payload = [format((i >> (8 * j)) & 0xFF, "02x") for j in range(4)] + [
