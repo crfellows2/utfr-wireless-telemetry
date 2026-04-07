@@ -255,7 +255,7 @@ pub fn create_datetime(
 pub fn get_build_time() -> Option<NaiveDateTime> {
     let timestamp_str = env!("BUILD_TIMESTAMP");
     let timestamp: i64 = timestamp_str.parse().ok()?;
-    Some(NaiveDateTime::from_timestamp(timestamp, 0))
+    NaiveDateTime::from_timestamp_opt(timestamp, 0)
 }
 
 /// Get current system timestamp with microsecond precision
