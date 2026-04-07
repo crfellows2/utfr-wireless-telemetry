@@ -1,5 +1,4 @@
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
-use nalgebra::{Matrix2, Vector2, Vector3};
 use embassy_time::{Duration, Ticker};
 use crate::can_interface::CanFrameForSd;
 
@@ -26,86 +25,77 @@ fn parse_gyro(frame: &CanFrameForSd) -> (f32, f32, f32) {
     (gx, gy, gz)
 }
 
+// EKF with H = identity and diagonal P, Q, R — roll and pitch decouple completely,
+// so all matrix ops reduce to scalar arithmetic.
 pub struct EKF {
-    pub roll: f32,              // radians
-    pub pitch: f32,             // radians
-    state: Vector2<f32>,        // [roll, pitch]
-    gyro_bias: Vector3<f32>,    // [gx, gy, gz] in rad/s
-    p: Matrix2<f32>,            // error covariance
-    q: Matrix2<f32>,            // process noise
-    r: Matrix2<f32>,            // measurement noise
-    h: Matrix2<f32>,            // observation matrix (identity)
+    pub roll: f32,   // radians
+    pub pitch: f32,  // radians
+
+    // diagonal entries of error covariance P
+    p_roll: f32,
+    p_pitch: f32,
+
+    // diagonal entries of process noise Q
+    q_roll: f32,
+    q_pitch: f32,
+
+    // diagonal entries of measurement noise R
+    r_roll: f32,
+    r_pitch: f32,
 }
 
 impl EKF {
-    /// gyro_bias: [gx, gy, gz] in rad/s
-    /// accel_var: (var_x, var_y) — roll/pitch measurement noise from accelerometer
-    /// gyro_var:  (var_x, var_y) — roll/pitch process noise from gyro
+    /// accel_var: (var_roll, var_pitch) — measurement noise from accelerometer
+    /// gyro_var:  (var_roll, var_pitch) — process noise from gyro
     pub fn new(
-        gyro_bias: Vector3<f32>,
         accel_var: (f32, f32),
         gyro_var: (f32, f32),
     ) -> Self {
-        let mut ekf = Self {
+        Self {
             roll: 0.0,
             pitch: 0.0,
-            state: Vector2::zeros(),
-            gyro_bias,
-            p: Matrix2::zeros(),
-            q: Matrix2::zeros(),
-            r: Matrix2::zeros(),
-            h: Matrix2::identity(),
-        };
-
-        ekf.p[(0, 0)] = gyro_var.0;  // roll
-        ekf.p[(1, 1)] = gyro_var.1;  // pitch
-
-        ekf.q[(0, 0)] = gyro_var.0;
-        ekf.q[(1, 1)] = gyro_var.1;
-
-        ekf.r[(0, 0)] = accel_var.0; // roll from accel
-        ekf.r[(1, 1)] = accel_var.1; // pitch from accel
-
-        ekf
+            p_roll: gyro_var.0,
+            p_pitch: gyro_var.1,
+            q_roll: gyro_var.0,
+            q_pitch: gyro_var.1,
+            r_roll: accel_var.0,
+            r_pitch: accel_var.1,
+        }
     }
 
     pub fn predict(&mut self, gyro: &CanFrameForSd, dt: f32) {
         let (gx, gy, _) = parse_gyro(gyro);
-
-        self.state[0] += (gx - self.gyro_bias[0]) * dt; // roll
-        self.state[1] += (gy - self.gyro_bias[1]) * dt; // pitch
-
-        self.p += self.q;
+        self.roll  += gx * dt;
+        self.pitch += gy * dt;
+        self.p_roll  += self.q_roll;
+        self.p_pitch += self.q_pitch;
     }
 
     pub fn update(&mut self, accel: &CanFrameForSd) {
         let (ax, ay, az) = parse_accel(accel);
 
         let a_mag = (ax * ax + ay * ay + az * az).sqrt();
-        let roll_accel = ay.atan2(az);
+        let roll_accel  = ay.atan2(az);
         let pitch_accel = (-ax).atan2((ay * ay + az * az).sqrt());
 
         // Only correct with accel when not under significant dynamic acceleration
-        let mut measurement = self.state;
         let is_dynamic = (a_mag - 1.0).abs() > 0.15;
-        if !is_dynamic {
-            measurement[0] = roll_accel;
-            measurement[1] = pitch_accel;
-        }
+        let meas_roll  = if is_dynamic { self.roll }  else { roll_accel };
+        let meas_pitch = if is_dynamic { self.pitch } else { pitch_accel };
 
-        let y = measurement - self.h * self.state;
-        let s = self.h * self.p * self.h.transpose() + self.r;
+        // With H = I: S = P + R, K = P / S, state += K * (meas - state), P = (1 - K) * P
+        let s_roll  = self.p_roll  + self.r_roll;
+        let s_pitch = self.p_pitch + self.r_pitch;
 
-        if let Some(s_inv) = s.try_inverse() {
-            let k = self.p * self.h.transpose() * s_inv;
-            self.state += k * y;
-            self.p = (Matrix2::identity() - k * self.h) * self.p;
-        } else {
-            log::warn!("EKF: S matrix not invertible, skipping update");
-        }
+        // S is always positive (sum of variances), so no invertibility check needed
+        let k_roll  = self.p_roll  / s_roll;
+        let k_pitch = self.p_pitch / s_pitch;
 
-        self.roll = self.state[0];
-        self.pitch = self.state[1];
+        self.roll  += k_roll  * (meas_roll  - self.roll);
+        self.pitch += k_pitch * (meas_pitch - self.pitch);
+
+        self.p_roll  = (1.0 - k_roll)  * self.p_roll;
+        self.p_pitch = (1.0 - k_pitch) * self.p_pitch;
     }
 }
 
@@ -122,8 +112,7 @@ fn pose_estimation_thread_main() {
     use esp_idf_svc::hal::task::block_on;
 
     // TODO: replace with values computed from a calibration pass at startup
-    let gyro_bias = Vector3::new(0.0f32, 0.0, 0.0);
-    let mut ekf = EKF::new(gyro_bias, (0.001, 0.001), (0.001, 0.001));
+    let mut ekf = EKF::new((0.001, 0.001), (0.001, 0.001));
     let mut last_ts: Option<u64> = None;
     let mut ticker = Ticker::every(Duration::from_hz(10));
 
@@ -142,8 +131,12 @@ fn pose_estimation_thread_main() {
 
             ekf.predict(&gyro, dt);
             ekf.update(&accel);
-            
-            log::info!("roll: {:.3} deg, pitch: {:.3} deg", ekf.roll * 180.0 / std::f32::consts::PI, ekf.pitch * 180.0 / std::f32::consts::PI);
+
+            log::info!(
+                "roll: {:.3} deg, pitch: {:.3} deg",
+                ekf.roll  * 180.0 / core::f32::consts::PI,
+                ekf.pitch * 180.0 / core::f32::consts::PI,
+            );
             ticker.next().await;
         }
     });
