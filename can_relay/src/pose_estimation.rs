@@ -143,7 +143,7 @@ fn pose_estimation_thread_main() {
             ekf.predict(&gyro, dt);
             ekf.update(&accel);
             
-            log::info!("roll: {:.3} rad, pitch: {:.3} rad", ekf.roll, ekf.pitch);
+            log::info!("roll: {:.3} deg, pitch: {:.3} deg", ekf.roll * 180.0 / std::f32::consts::PI, ekf.pitch * 180.0 / std::f32::consts::PI);
             ticker.next().await;
         }
     });
