@@ -39,6 +39,17 @@ void sendCAN(uint32_t id, uint8_t *data, uint8_t len) {
   }
 }
 
+// Parsing CAN Message
+void parse_rx(twai_message_t &message) {
+  Serial.printf("ID: %" PRIx32 "\nByte:", message.identifier);
+  if (!(message.rtr)) {
+    for (int i = 0; i < message.data_length_code; i++) {
+      Serial.printf(" %d = %02x,", i, message.data[i]);
+    }
+    Serial.println("");
+  }
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -63,7 +74,7 @@ void setup() {
   // Reconfigure alerts to detect TX alerts and Bus-Off errors
   uint32_t alerts_to_enable = TWAI_ALERT_TX_IDLE | TWAI_ALERT_TX_SUCCESS |
                               TWAI_ALERT_TX_FAILED | TWAI_ALERT_ERR_PASS |
-                              TWAI_ALERT_BUS_ERROR;
+                              TWAI_ALERT_BUS_ERROR | TWAI_ALERT_RX_DATA | TWAI_ALERT_RX_QUEUE_FULL;
   if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK) {
     Serial.println("CAN Alerts reconfigured");
   } else {
@@ -107,6 +118,14 @@ void loop() {
   if (alerts_triggered & TWAI_ALERT_TX_SUCCESS) {
     Serial.println("Alert: The Transmission was successful.");
     Serial.printf("TX buffered: %" PRIu32 "\t", twaistatus.msgs_to_tx);
+  }
+
+  // Check if message is received
+  if (alerts_triggered & TWAI_ALERT_RX_DATA) {
+    twai_message_t message;
+    while (twai_receive(&message, 0) == ESP_OK) {
+      parse_rx(message);
+    }
   }
 
   // IMU Serial Data Output
