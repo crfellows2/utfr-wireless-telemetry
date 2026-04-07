@@ -23,9 +23,9 @@ void packFloat(uint8_t* buf, int offset, float value, float scale) {
 void sendCAN(uint32_t id, uint8_t* data, uint8_t len) {
     twai_message_t msg;
     msg.identifier      = id;
-    msg.extd            = 0;       // Standard 11-bit frame
+    msg.extd            = 0;   
     msg.rtr             = 0;
-    msg.ss              = 1;       // Single shot (no auto-retransmit)
+    msg.ss              = 1;       
     msg.self            = 0;
     msg.dlc_non_comp    = 0;
     msg.data_length_code = len;
@@ -105,19 +105,19 @@ void loop() {
     Serial.print(" Y:");               Serial.print(imu.data.gyroY, 3);
     Serial.print(" Z:");               Serial.println(imu.data.gyroZ, 3);
 
-    // CAN Frame 1: Accel (0x100) — 6 bytes
-    uint8_t accelFrame[6];
+    uint8_t accelFrame[8];
     packFloat(accelFrame, 0, imu.data.accelX, ACCEL_SCALE);
     packFloat(accelFrame, 2, imu.data.accelY, ACCEL_SCALE);
     packFloat(accelFrame, 4, imu.data.accelZ, ACCEL_SCALE);
-    sendCAN(CAN_ID_ACCEL, accelFrame, 6);
+    packFloat(accelFrame, 6, 0, ACCEL_SCALE);
+    sendCAN(CAN_ID_ACCEL, accelFrame, 8);
 
-    // CAN Frame 2: Gyro (0x101) — 6 bytes
-    uint8_t gyroFrame[6];
+    uint8_t gyroFrame[8];
     packFloat(gyroFrame, 0, imu.data.gyroX, GYRO_SCALE);
     packFloat(gyroFrame, 2, imu.data.gyroY, GYRO_SCALE);
     packFloat(gyroFrame, 4, imu.data.gyroZ, GYRO_SCALE);
-    sendCAN(CAN_ID_GYRO, gyroFrame, 6);
+    packFloat(gyroFrame, 6, 0, GYRO_SCALE);
+    sendCAN(CAN_ID_GYRO, gyroFrame, 8);
 
     delay(20); // 50 Hz
 }
