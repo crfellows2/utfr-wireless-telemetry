@@ -43,6 +43,8 @@ Car ESP32 (2x CAN) ──BLE──► Receiver ESP32 ──USB──► Pi 4B Ba
 | `can_bridge` | Receives decoded signals from USB, resolves topic paths via DBC, publishes to MQTT. Config UI at `/link-config` (also exposed on :8080) |
 | `grafana` | Live signal dashboard at `/` (also exposed on :3000) |
 
+For detailed ESP32 firmware architecture (async tasks, RTOS threads, channels, and file locations), see [FIRMWARE_ARCHITECTURE.md](FIRMWARE_ARCHITECTURE.md).
+
 ---
 
 ## Wireless Link
@@ -267,3 +269,10 @@ To monitor a signal, go to **Explore**, select the MQTT datasource, and
 subscribe to a topic such as `can/bus0/EngineData/engine_rpm`.
 
 (Also accessible directly at `http://telemetry.local:3000` for debugging)
+
+---
+
+## Developer Resources
+
+- **[FIRMWARE_ARCHITECTURE.md](FIRMWARE_ARCHITECTURE.md)** - Internal software architecture of the CAN relay and receiver ESP32 firmware, including task structure, channels, signals, and exact file locations for code navigation
+- **[QUICKSTART.md](QUICKSTART.md)** - Installation and setup instructions
