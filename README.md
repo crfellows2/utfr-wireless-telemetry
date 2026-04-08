@@ -64,6 +64,27 @@ base station — when the DBC changes, update it in both places.
 
 ---
 
+## Sending Commands to the Car
+
+The wireless link is bidirectional. The base station can send CAN write commands
+back to the car for remote configuration, testing, or control.
+
+Commands are sent as JSON over the USB serial connection to the receiver ESP32,
+which forwards them over BLE to the car. Example:
+
+```json
+{"type":"write","data":{"id":{"standard":"0x123"},"payload":["de","ad","be","ef"]}}
+```
+
+This writes an 8-byte CAN frame with ID `0x123` to the car's CAN bus. The
+car-side ESP processes commands immediately and writes frames to the CAN bus at
+high priority.
+
+Use cases include sending configuration changes, triggering calibration routines,
+or testing actuators without physical access to the car.
+
+---
+
 ## Signal Filtering and Prioritization
 
 Because BLE throughput is limited, the car ESP32 filters and decimates signals
